@@ -1,6 +1,100 @@
 import { getPlayerFromSession, getSessionToken } from "@/lib/auth";
-import { bulls, recentMatches, latestMatchTactics, type RecentMatch, type MatchTeam, type PitchPlayer } from "@/lib/matches";
+import { createMatch, getMatchTactics, getRecentMatches } from "@/lib/match-store";
+import { bulls, type MatchTeam, type PitchPlayer, type RecentMatch } from "@/lib/matches";
 import { getRosterPlayers } from "@/lib/team";
+
+const SLOT_COORDS = [
+  { x: 50, y: 86 },
+  { x: 28, y: 68 },
+  { x: 72, y: 68 },
+  { x: 16, y: 44 },
+  { x: 50, y: 42 },
+  { x: 84, y: 44 },
+  { x: 50, y: 18 },
+];
+
+/**
+ * Spreads the admin's picks over the 2-3-1 pitch slots, respecting each
+ * player's declared position before falling back to the remaining coordinates.
+ */
+async function buildLineup(selectedPlayerIds: string[]) {
+  const roster = await getRosterPlayers();
+  const selected = roster.filter((p) => selectedPlayerIds.includes(p.id));
+
+  if (selected.length === 0) {
+    return null;
+  }
+
+  const players: PitchPlayer[] = selected.map((p) => ({
+    id: p.id,
+    name: p.playerName,
+    number: p.jerseyNumber,
+    position: p.position,
+    avatarUrl: p.avatarUrl,
+    rating: 7.0,
+    goals: 0,
+    assists: 0,
+    x: 0,
+    y: 0,
+  }));
+
+  const goleiros = players.filter((p) => p.position === "Goleiro");
+  const zagueiros = players.filter((p) => p.position.includes("Zagueiro") || p.position.includes("Fixo"));
+  const alas = players.filter((p) => p.position.includes("Ala"));
+  const meias = players.filter((p) => p.position.includes("Meia"));
+  const atacantes = players.filter((p) => p.position.includes("Atacante") || p.position.includes("Pivô"));
+
+  const starters: PitchPlayer[] = [];
+  const usedIds = new Set<string>();
+
+  if (goleiros.length > 0) {
+    starters.push({ ...goleiros[0], x: 50, y: 86 });
+    usedIds.add(goleiros[0].id);
+  }
+
+  for (const z of zagueiros) {
+    if (starters.length < 3 && !usedIds.has(z.id)) {
+      const posX = starters.filter((p) => zagueiros.some((zg) => zg.id === p.id)).length === 0 ? 28 : 72;
+      starters.push({ ...z, x: posX, y: 68 });
+      usedIds.add(z.id);
+    }
+  }
+
+  for (const a of alas) {
+    if (starters.length < 5 && !usedIds.has(a.id)) {
+      const posX = starters.filter((p) => alas.some((al) => al.id === p.id)).length === 0 ? 16 : 84;
+      starters.push({ ...a, x: posX, y: 44 });
+      usedIds.add(a.id);
+    }
+  }
+
+  for (const m of meias) {
+    if (starters.length < 6 && !usedIds.has(m.id)) {
+      starters.push({ ...m, x: 50, y: 42 });
+      usedIds.add(m.id);
+    }
+  }
+
+  for (const at of atacantes) {
+    if (starters.length < 7 && !usedIds.has(at.id)) {
+      starters.push({ ...at, x: 50, y: 18 });
+      usedIds.add(at.id);
+    }
+  }
+
+  const remaining = players.filter((p) => !usedIds.has(p.id));
+
+  while (starters.length < 7 && remaining.length > 0) {
+    const nextPlayer = remaining.shift()!;
+    const coord = SLOT_COORDS[starters.length] || { x: 50, y: 50 };
+    starters.push({ ...nextPlayer, x: coord.x, y: coord.y });
+    usedIds.add(nextPlayer.id);
+  }
+
+  const bench = players.filter((p) => !usedIds.has(p.id)).map((p) => ({ ...p, x: 0, y: 0 }));
+
+  return { starters, bench };
+}
 
 export async function POST(request: Request) {
   const token = getSessionToken(request);
@@ -76,104 +170,31 @@ export async function POST(request: Request) {
     link: data.instagramLink?.trim() || undefined,
   };
 
-  // Prepend new match to matches list
-  recentMatches.unshift(newMatch);
+  try {
+    const lineup =
+      Array.isArray(data.selectedPlayerIds) && data.selectedPlayerIds.length > 0
+        ? await buildLineup(data.selectedPlayerIds)
+        : null;
 
-  // If player lineup was selected by admin, update match tactics
-  if (Array.isArray(data.selectedPlayerIds) && data.selectedPlayerIds.length > 0) {
-    const roster = await getRosterPlayers();
-    const selected = roster.filter((p) => data.selectedPlayerIds!.includes(p.id));
+    const stored = await createMatch(newMatch, lineup ?? undefined);
+    const [matches, tactics] = await Promise.all([
+      getRecentMatches(),
+      getMatchTactics(stored.id),
+    ]);
 
-    if (selected.length > 0) {
-      const players: PitchPlayer[] = selected.map((p) => ({
-        id: p.id,
-        name: p.playerName,
-        number: p.jerseyNumber,
-        position: p.position,
-        avatarUrl: p.avatarUrl,
-        rating: 7.0,
-        goals: 0,
-        assists: 0,
-        x: 0,
-        y: 0,
-      }));
-
-      const goleiros = players.filter((p) => p.position === "Goleiro");
-      const zagueiros = players.filter((p) => p.position.includes("Zagueiro") || p.position.includes("Fixo"));
-      const alas = players.filter((p) => p.position.includes("Ala"));
-      const meias = players.filter((p) => p.position.includes("Meia"));
-      const atacantes = players.filter((p) => p.position.includes("Atacante") || p.position.includes("Pivô"));
-
-      const starters: PitchPlayer[] = [];
-      const usedIds = new Set<string>();
-
-      if (goleiros.length > 0) {
-        starters.push({ ...goleiros[0], x: 50, y: 86 });
-        usedIds.add(goleiros[0].id);
-      }
-
-      for (const z of zagueiros) {
-        if (starters.length < 3 && !usedIds.has(z.id)) {
-          const posX = starters.filter((p) => zagueiros.some((zg) => zg.id === p.id)).length === 0 ? 28 : 72;
-          starters.push({ ...z, x: posX, y: 68 });
-          usedIds.add(z.id);
-        }
-      }
-
-      for (const a of alas) {
-        if (starters.length < 5 && !usedIds.has(a.id)) {
-          const posX = starters.filter((p) => alas.some((al) => al.id === p.id)).length === 0 ? 16 : 84;
-          starters.push({ ...a, x: posX, y: 44 });
-          usedIds.add(a.id);
-        }
-      }
-
-      for (const m of meias) {
-        if (starters.length < 6 && !usedIds.has(m.id)) {
-          starters.push({ ...m, x: 50, y: 42 });
-          usedIds.add(m.id);
-        }
-      }
-
-      for (const at of atacantes) {
-        if (starters.length < 7 && !usedIds.has(at.id)) {
-          starters.push({ ...at, x: 50, y: 18 });
-          usedIds.add(at.id);
-        }
-      }
-
-      const remaining = players.filter((p) => !usedIds.has(p.id));
-      const defaultCoords = [
-        { x: 50, y: 86 },
-        { x: 28, y: 68 },
-        { x: 72, y: 68 },
-        { x: 16, y: 44 },
-        { x: 50, y: 42 },
-        { x: 84, y: 44 },
-        { x: 50, y: 18 },
-      ];
-
-      while (starters.length < 7 && remaining.length > 0) {
-        const nextPlayer = remaining.shift()!;
-        const coord = defaultCoords[starters.length] || { x: 50, y: 50 };
-        starters.push({ ...nextPlayer, x: coord.x, y: coord.y });
-        usedIds.add(nextPlayer.id);
-      }
-
-      const bench = players.filter((p) => !usedIds.has(p.id)).map((p) => ({ ...p, x: 0, y: 0 }));
-
-      latestMatchTactics.starters = starters;
-      latestMatchTactics.bench = bench;
-      latestMatchTactics.events = [];
-    }
+    return Response.json({
+      message: isUpcoming
+        ? "Próximo jogo agendado com sucesso!"
+        : "Partida finalizada cadastrada com sucesso!",
+      match: stored,
+      matches,
+      tactics,
+    });
+  } catch (error) {
+    console.error("api-admin-matches-create-failed", error);
+    return Response.json(
+      { error: "Erro ao salvar a partida no banco." },
+      { status: 500 },
+    );
   }
-
-  return Response.json({
-    message: isUpcoming
-      ? "Próximo jogo agendado com sucesso!"
-      : "Partida finalizada cadastrada com sucesso!",
-    match: newMatch,
-    matches: recentMatches,
-    tactics: latestMatchTactics,
-  });
 }

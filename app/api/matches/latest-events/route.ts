@@ -1,14 +1,16 @@
 import { getPlayerFromSession, getSessionToken } from "@/lib/auth";
 import {
-  latestMatchTactics,
+  addMatchEvent,
+  getLatestMatch,
+  getMatchTactics,
+} from "@/lib/match-store";
+import {
+  DEFAULT_MATCH_TACTICS,
   organizeLineupByRatings,
   type MatchEvent,
   type PitchPlayer,
 } from "@/lib/matches";
 import { getRosterPlayers } from "@/lib/team";
-
-// In-memory events store that augments default match events
-const liveEvents: MatchEvent[] = [...latestMatchTactics.events];
 
 function normalizeName(str: string): string {
   return str
@@ -19,6 +21,8 @@ function normalizeName(str: string): string {
 }
 
 export async function GET() {
+  const tactics = await getMatchTactics();
+
   try {
     const roster = await getRosterPlayers();
 
@@ -45,32 +49,20 @@ export async function GET() {
     }
 
     const allEnriched = [
-      ...latestMatchTactics.starters.map(enrich),
-      ...latestMatchTactics.bench.map(enrich),
+      ...tactics.starters.map(enrich),
+      ...tactics.bench.map(enrich),
     ];
 
     const { starters, bench } = organizeLineupByRatings(allEnriched);
 
     return Response.json(
-      {
-        tactics: {
-          ...latestMatchTactics,
-          starters,
-          bench,
-          events: liveEvents,
-        },
-      },
+      { tactics: { ...tactics, starters, bench } },
       { headers: { "Cache-Control": "public, max-age=10, stale-while-revalidate=30" } },
     );
   } catch (err) {
     console.error("latest-events-get-failed", err);
     return Response.json(
-      {
-        tactics: {
-          ...latestMatchTactics,
-          events: liveEvents,
-        },
-      },
+      { tactics },
       { headers: { "Cache-Control": "public, max-age=10, stale-while-revalidate=30" } },
     );
   }
@@ -108,23 +100,41 @@ export async function POST(request: Request) {
     return Response.json({ error: "Tipo de participação inválido." }, { status: 400 });
   }
 
-  const newEvent: MatchEvent = {
-    id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    minute: data.minute ? `${data.minute.replace(/[^0-9]/g, "")}'` : "Jogo",
-    type: data.type,
-    team: "bulls",
-    playerName: user.playerName,
-    assistPlayerName: data.assistPlayerName?.trim() || undefined,
-    scoreSnapshot: "6–4",
-    detail: data.detail?.trim() || (data.type === "goal" ? "Gol marcado pelo atleta" : "Passe para gol"),
-  };
+  try {
+    const match = await getLatestMatch();
+    if (!match) {
+      return Response.json(
+        { error: "Nenhuma partida cadastrada para receber eventos." },
+        { status: 404 },
+      );
+    }
 
-  // Add event to the live events list
-  liveEvents.push(newEvent);
+    const newEvent: MatchEvent = {
+      id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      minute: data.minute ? `${data.minute.replace(/[^0-9]/g, "")}'` : "Jogo",
+      type: data.type,
+      team: "bulls",
+      playerName: user.playerName,
+      assistPlayerName: data.assistPlayerName?.trim() || undefined,
+      scoreSnapshot: match.score,
+      detail:
+        data.detail?.trim() ||
+        (data.type === "goal" ? "Gol marcado pelo atleta" : "Passe para gol"),
+    };
 
-  return Response.json({
-    message: `${data.type === "goal" ? "Gol" : "Assistência"} registrado(a) com sucesso!`,
-    event: newEvent,
-    events: liveEvents,
-  });
+    await addMatchEvent(match.id, newEvent);
+    const tactics = await getMatchTactics(match.id);
+
+    return Response.json({
+      message: `${data.type === "goal" ? "Gol" : "Assistência"} registrado(a) com sucesso!`,
+      event: newEvent,
+      events: tactics.events.length > 0 ? tactics.events : DEFAULT_MATCH_TACTICS.events,
+    });
+  } catch (error) {
+    console.error("latest-events-post-failed", error);
+    return Response.json(
+      { error: "Erro ao registrar o evento no banco." },
+      { status: 500 },
+    );
+  }
 }

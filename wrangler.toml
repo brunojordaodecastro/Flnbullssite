@@ -1,8 +1,23 @@
 name = "fln-bulls"
 main = "./worker/index.ts"
-compatibility_date = "2026-08-28"
+compatibility_date = "2026-05-22"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
+
+# Domínio do site. A zona flnbulls.site está na Cloudflare (NS miguel/saanvi).
+# custom_domain cria o registro DNS e o certificado sozinho; cadastrar o apex
+# no Turnstile já cobre www, porque subdomínios entram junto no allowlist.
+#
+# Depois de confirmar que o domínio responde, considere workers_dev = false
+# para não manter a URL *.workers.dev pública em paralelo.
+
+[[routes]]
+pattern = "flnbulls.site"
+custom_domain = true
+
+[[routes]]
+pattern = "www.flnbulls.site"
+custom_domain = true
 
 [assets]
 binding = "ASSETS"
@@ -10,11 +25,23 @@ binding = "ASSETS"
 [observability]
 enabled = true
 
-# O Wrangler cria o banco na primeira publicação e grava aqui os dados reais.
+# Usado por worker/index.ts na rota /_vinext/image para otimizar as imagens
+# servidas pelo componente next/image.
+[images]
+binding = "IMAGES"
+
 [[d1_databases]]
 binding = "DB"
+database_name = "fln-bulls-db"
+database_id = "19a45273-e2ec-48bc-a0e7-e065c736af7b"
 migrations_dir = "drizzle"
 
-# O Wrangler cria o bucket na primeira publicação e grava aqui o nome real.
 [[r2_buckets]]
 binding = "PLAYER_MEDIA"
+bucket_name = "fln-bulls-media"
+
+# TURNSTILE_SITE_KEY é público e fica aqui; TURNSTILE_SECRET_KEY é secret e vai
+# por `npx wrangler secret put TURNSTILE_SECRET_KEY`. Sem os dois, login e
+# cadastro respondem 400 em produção (lib/auth-security.ts).
+[vars]
+TURNSTILE_SITE_KEY = "0x4AAAAAAEfdJXFQr8ZtnIGg"

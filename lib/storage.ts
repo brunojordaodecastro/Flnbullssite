@@ -7,7 +7,7 @@ import { env } from "cloudflare:workers";
 export function getR2(): R2Bucket {
   if (!env.PLAYER_MEDIA) {
     throw new Error(
-      "Cloudflare R2 binding `PLAYER_MEDIA` is unavailable. Set the `r2` field in .openai/hosting.json to `PLAYER_MEDIA`.",
+      "Cloudflare R2 binding `PLAYER_MEDIA` is unavailable. Check the `[[r2_buckets]]` entry in wrangler.toml (binding and bucket_name).",
     );
   }
 

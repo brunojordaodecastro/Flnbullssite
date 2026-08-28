@@ -1,15 +1,11 @@
 import { getPlayerFromSession, getSessionToken } from "@/lib/auth";
-import {
-  latestMatchTactics,
-  organizeLineupByRatings,
-  type PitchPlayer,
-} from "@/lib/matches";
+import { applyRatings, getLatestMatch, getMatchTactics } from "@/lib/match-store";
 
 export async function GET() {
+  const tactics = await getMatchTactics();
+
   return Response.json(
-    {
-      tactics: latestMatchTactics,
-    },
+    { tactics },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -46,30 +42,27 @@ export async function POST(request: Request) {
     );
   }
 
-  // Combine all current pitch players
-  const allPlayers: PitchPlayer[] = [
-    ...latestMatchTactics.starters,
-    ...latestMatchTactics.bench,
-  ];
-
-  // Apply ratings
-  for (const player of allPlayers) {
-    const key = player.id || player.name.toLowerCase();
-    if (data.ratings[key] !== undefined) {
-      player.rating = Math.round(Number(data.ratings[key]) * 10) / 10;
+  try {
+    const match = await getLatestMatch();
+    if (!match) {
+      return Response.json(
+        { error: "Nenhuma partida cadastrada para receber notas." },
+        { status: 404 },
+      );
     }
+
+    // Persists the ratings and reorders starters/bench by the new averages.
+    const tactics = await applyRatings(match.id, data.ratings);
+
+    return Response.json({
+      message: "Notas registradas e escalação reordenada com sucesso!",
+      tactics,
+    });
+  } catch (error) {
+    console.error("api-admin-ratings-save-failed", error);
+    return Response.json(
+      { error: "Erro ao salvar as notas no banco." },
+      { status: 500 },
+    );
   }
-
-  // Reorganize starters and bench by highest rating per position
-  const { starters, bench } = organizeLineupByRatings(allPlayers);
-
-  // Update latestMatchTactics
-  latestMatchTactics.starters = starters;
-  latestMatchTactics.bench = bench;
-
-  return Response.json({
-    message: "Notas registradas e escalação reordenada com sucesso!",
-    tactics: latestMatchTactics,
-  });
 }
-

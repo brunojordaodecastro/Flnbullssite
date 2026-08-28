@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { recentMatches as initialMatches, type RecentMatch } from "@/lib/matches";
+import { DEFAULT_RECENT_MATCHES, type RecentMatch } from "@/lib/matches";
 import AddMatchModal from "./AddMatchModal";
+import { useLiveMatches } from "./useLiveMatches";
 
 function RecentMatchDetails({ match }: { match: RecentMatch }) {
   const resultClass =
@@ -75,7 +76,7 @@ function RecentMatchDetails({ match }: { match: RecentMatch }) {
 }
 
 export default function MatchesSection() {
-  const [matches, setMatches] = useState<RecentMatch[]>(initialMatches);
+  const { matches, refresh } = useLiveMatches(DEFAULT_RECENT_MATCHES);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -101,7 +102,8 @@ export default function MatchesSection() {
   }, []);
 
   function handleMatchAdded() {
-    setMatches([...initialMatches]);
+    // A partida foi gravada no D1; recarrega a lista a partir do banco.
+    void refresh();
   }
 
   return (

@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { RosterPlayer } from "@/lib/team";
 import type { PlayerProfile } from "@/lib/auth";
 import {
-  latestMatchTactics,
+  DEFAULT_MATCH_TACTICS,
   organizeLineupByRatings,
   type MatchTactics,
   type PitchPlayer,
@@ -30,7 +30,7 @@ export default function TeamView() {
   const [activeTab, setActiveTab] = useState<TeamTab>("jogo");
   const [user, setUser] = useState<PlayerProfile | null>(null);
   const [players, setPlayers] = useState<RosterPlayer[]>([]);
-  const [tactics, setTactics] = useState<MatchTactics>(latestMatchTactics);
+  const [tactics, setTactics] = useState<MatchTactics>(DEFAULT_MATCH_TACTICS);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);

@@ -22,6 +22,13 @@
       "when": 1787800768470,
       "tag": "0002_strange_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787929764888,
+      "tag": "0003_fantastic_venom",
+      "breakpoints": true
     }
   ]
 }

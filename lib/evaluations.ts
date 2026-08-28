@@ -1,7 +1,13 @@
+import { getD1 } from "@/db";
+
 import {
-  latestMatchTactics,
+  getLatestMatch,
+  getMatchTactics,
+  saveLineup,
+  type StoredMatch,
+} from "./match-store";
+import {
   organizeLineupByRatings,
-  recentMatches,
   type PitchPlayer,
   type RecentMatch,
 } from "./matches";
@@ -11,15 +17,12 @@ export type PostMatchSubmission = {
   id: string;
   userId: string;
   playerName: string;
-  matchKey: string;
+  matchId: string;
   goals: number;
   assists: number;
   ratingsGiven: Record<string, number>; // targetPlayerId -> rating (0 - 10)
   createdAt: string;
 };
-
-// In-memory store for post-match evaluation submissions
-const submissions: PostMatchSubmission[] = [];
 
 // Base initial ratings for seed players if no evaluations exist yet
 const INITIAL_SEED_RATINGS: Record<string, number> = {
@@ -88,8 +91,59 @@ export function isEvaluationWindowOpen(match: RecentMatch): boolean {
   return Date.now() >= oneHourAfter;
 }
 
+type RatingRow = { target_key: string; rating: number };
+
+/**
+ * Every rating handed out by teammates for a match, as
+ * targetKey -> list of ratings received.
+ */
+async function getReceivedRatings(
+  matchId: string,
+): Promise<Map<string, number[]>> {
+  const received = new Map<string, number[]>();
+
+  try {
+    const rows = await getD1()
+      .prepare(
+        `SELECT r.target_key, r.rating
+         FROM match_evaluation_ratings r
+         JOIN match_evaluations e ON e.id = r.evaluation_id
+         WHERE e.match_id = ?`,
+      )
+      .bind(matchId)
+      .all<RatingRow>();
+
+    for (const row of rows.results ?? []) {
+      const key = row.target_key.toLowerCase().trim();
+      const list = received.get(key) ?? [];
+      list.push(row.rating);
+      received.set(key, list);
+    }
+  } catch (error) {
+    console.error("evaluations-received-ratings-failed", error);
+  }
+
+  return received;
+}
+
+async function hasUserSubmitted(matchId: string, userId: string) {
+  try {
+    const row = await getD1()
+      .prepare(
+        "SELECT id FROM match_evaluations WHERE match_id = ? AND user_id = ?",
+      )
+      .bind(matchId, userId)
+      .first<{ id: string }>();
+
+    return Boolean(row);
+  } catch (error) {
+    console.error("evaluations-has-submitted-failed", error);
+    return false;
+  }
+}
+
 export async function getPostMatchStatus(userId?: string) {
-  const currentMatch = recentMatches[0];
+  const currentMatch = await getLatestMatch();
   if (!currentMatch) {
     return {
       isOpen: false,
@@ -100,14 +154,11 @@ export async function getPostMatchStatus(userId?: string) {
     };
   }
 
-  const matchKey = `${currentMatch.date}_${currentMatch.away.name}`;
   const isOpen = isEvaluationWindowOpen(currentMatch);
+  const tactics = await getMatchTactics(currentMatch.id);
 
   // Get all players on the match lineup (starters + bench)
-  const allLineupPlayers: PitchPlayer[] = [
-    ...latestMatchTactics.starters,
-    ...latestMatchTactics.bench,
-  ];
+  const allLineupPlayers: PitchPlayer[] = [...tactics.starters, ...tactics.bench];
 
   const roster = await getRosterPlayers();
 
@@ -127,7 +178,7 @@ export async function getPostMatchStatus(userId?: string) {
   const isEscalado = Boolean(userPlayer);
 
   const hasSubmitted = userId
-    ? submissions.some((s) => s.userId === userId && s.matchKey === matchKey)
+    ? await hasUserSubmitted(currentMatch.id, userId)
     : false;
 
   // Teammates to rate (all other escalados except this user)
@@ -157,6 +208,7 @@ export async function getPostMatchStatus(userId?: string) {
     isEscalado,
     hasSubmitted,
     match: {
+      id: currentMatch.id,
       date: currentMatch.date,
       time: currentMatch.time,
       home: currentMatch.home.name,
@@ -178,6 +230,11 @@ export async function getPostMatchStatus(userId?: string) {
   };
 }
 
+/**
+ * Persists one player's post-match submission (own goals/assists plus the
+ * ratings they gave to teammates), then recomputes every average and rewrites
+ * the lineup so the pitch reflects the new ratings.
+ */
 export async function submitPostMatchEvaluation({
   userId,
   playerName,
@@ -191,92 +248,112 @@ export async function submitPostMatchEvaluation({
   assists: number;
   ratingsGiven: Record<string, number>;
 }) {
-  const currentMatch = recentMatches[0];
-  const matchKey = currentMatch ? `${currentMatch.date}_${currentMatch.away.name}` : "latest";
+  const currentMatch: StoredMatch | null = await getLatestMatch();
+  if (!currentMatch) {
+    return {
+      success: false,
+      message: "Nenhuma partida disponível para avaliação.",
+      tactics: await getMatchTactics(),
+    };
+  }
 
-  // Remove previous submission if re-submitting
-  const existingIdx = submissions.findIndex((s) => s.userId === userId && s.matchKey === matchKey);
-  const newSubmission: PostMatchSubmission = {
-    id: `eval-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    userId,
-    playerName,
-    matchKey,
-    goals: Math.max(0, Math.min(20, Number(goals) || 0)),
-    assists: Math.max(0, Math.min(20, Number(assists) || 0)),
-    ratingsGiven: {},
-    createdAt: new Date().toISOString(),
-  };
+  const db = getD1();
+  const evaluationId = `${currentMatch.id}:${userId}`;
+  const now = new Date().toISOString();
 
-  // Clean ratings (0 to 10)
+  const cleanGoals = Math.max(0, Math.min(20, Number(goals) || 0));
+  const cleanAssists = Math.max(0, Math.min(20, Number(assists) || 0));
+
+  const cleanRatings: Record<string, number> = {};
   for (const [targetId, val] of Object.entries(ratingsGiven)) {
     const num = Number(val);
     if (!isNaN(num)) {
-      newSubmission.ratingsGiven[targetId] = Math.max(0, Math.min(10, Math.round(num * 10) / 10));
+      cleanRatings[targetId] = Math.max(0, Math.min(10, Math.round(num * 10) / 10));
     }
   }
 
-  if (existingIdx >= 0) {
-    submissions[existingIdx] = newSubmission;
-  } else {
-    submissions.push(newSubmission);
-  }
-
-  // Update user's personal goals & assists in latestMatchTactics
-  const allLineupPlayers = [
-    ...latestMatchTactics.starters,
-    ...latestMatchTactics.bench,
+  // Re-submitting replaces the previous answers for this match.
+  const statements = [
+    db
+      .prepare(
+        `INSERT INTO match_evaluations
+           (id, match_id, user_id, player_name, goals, assists, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(match_id, user_id) DO UPDATE SET
+           player_name = excluded.player_name,
+           goals = excluded.goals,
+           assists = excluded.assists,
+           updated_at = excluded.updated_at`,
+      )
+      .bind(
+        evaluationId,
+        currentMatch.id,
+        userId,
+        playerName,
+        cleanGoals,
+        cleanAssists,
+        now,
+        now,
+      ),
+    db
+      .prepare("DELETE FROM match_evaluation_ratings WHERE evaluation_id = ?")
+      .bind(evaluationId),
+    ...Object.entries(cleanRatings).map(([targetKey, rating]) =>
+      db
+        .prepare(
+          `INSERT INTO match_evaluation_ratings (id, evaluation_id, target_key, rating)
+           VALUES (?, ?, ?, ?)`,
+        )
+        .bind(`${evaluationId}:${targetKey}`, evaluationId, targetKey, rating),
+    ),
   ];
 
-  for (const p of allLineupPlayers) {
-    if (p.id === userId || p.name.toLowerCase().trim() === playerName.toLowerCase().trim()) {
-      p.goals = newSubmission.goals;
-      p.assists = newSubmission.assists;
-    }
-  }
+  await db.batch(statements);
 
-  // Recalculate the arithmetic average (média aritmética) for each player
-  recalculateAverageRatings(allLineupPlayers, matchKey);
+  const tactics = await getMatchTactics(currentMatch.id);
+  const allLineupPlayers = [...tactics.starters, ...tactics.bench].map((p) => {
+    if (
+      p.id === userId ||
+      p.name.toLowerCase().trim() === playerName.toLowerCase().trim()
+    ) {
+      return { ...p, goals: cleanGoals, assists: cleanAssists };
+    }
+    return { ...p };
+  });
+
+  const received = await getReceivedRatings(currentMatch.id);
+  recalculateAverageRatings(allLineupPlayers, received);
 
   // Position the highest-rated players as starters and remaining to bench
   const { starters, bench } = organizeLineupByRatings(allLineupPlayers);
-  latestMatchTactics.starters = starters;
-  latestMatchTactics.bench = bench;
+  await saveLineup(currentMatch.id, starters, bench);
 
   return {
     success: true,
     message: "Avaliação e estatísticas pós-jogo registradas com sucesso!",
-    tactics: latestMatchTactics,
+    tactics: { ...tactics, starters, bench },
   };
 }
 
-function recalculateAverageRatings(players: PitchPlayer[], matchKey: string) {
-  const matchSubmissions = submissions.filter((s) => s.matchKey === matchKey);
-
+/**
+ * Arithmetic average (média aritmética) of every rating a player received for
+ * the match. Mutates the given players in place.
+ */
+export function recalculateAverageRatings(
+  players: PitchPlayer[],
+  receivedRatings: Map<string, number[]>,
+) {
   for (const player of players) {
-    const receivedRatings: number[] = [];
+    const byId = receivedRatings.get(player.id.toLowerCase().trim()) ?? [];
+    const byName = receivedRatings.get(player.name.toLowerCase().trim()) ?? [];
+    const received = byId.length > 0 ? byId : byName;
 
-    // Collect all ratings received from teammates for this player
-    for (const sub of matchSubmissions) {
-      // Find rating given by this teammate to 'player'
-      for (const [targetKey, ratingVal] of Object.entries(sub.ratingsGiven)) {
-        if (
-          targetKey === player.id ||
-          targetKey.toLowerCase().trim() === player.name.toLowerCase().trim()
-        ) {
-          receivedRatings.push(ratingVal);
-        }
-      }
-    }
-
-    if (receivedRatings.length > 0) {
-      // Arithmetic average
-      const sum = receivedRatings.reduce((acc, curr) => acc + curr, 0);
-      const avg = sum / receivedRatings.length;
-      player.rating = Math.round(avg * 10) / 10;
+    if (received.length > 0) {
+      const sum = received.reduce((acc, curr) => acc + curr, 0);
+      player.rating = Math.round((sum / received.length) * 10) / 10;
     } else if (player.rating === undefined) {
       // Fallback seed rating
       player.rating = INITIAL_SEED_RATINGS[player.id] ?? 7.0;
     }
   }
 }
-

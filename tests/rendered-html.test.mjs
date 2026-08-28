@@ -420,9 +420,9 @@ test("supports OneFootball-style tactical pitch, bench, and match events timelin
   assert.match(modal, /\/icon-assist\.png/);
 
   // Events API & Library
-  assert.match(eventsRoute, /latestMatchTactics/);
+  assert.match(eventsRoute, /addMatchEvent/);
   assert.match(eventsRoute, /export async function POST/);
-  assert.match(matchesLib, /latestMatchTactics/);
+  assert.match(matchesLib, /DEFAULT_MATCH_TACTICS/);
   assert.match(matchesLib, /formation:\s*"2-3-1 \(Society\)"/);
 });
 
@@ -471,9 +471,9 @@ test("supports Admin Dashboard, user roles, match adding, and ratings evaluation
   assert.match(adminUsersRoute, /listAllUsersForAdmin/);
   assert.match(adminUsersRoute, /setUserRole/);
   assert.match(adminUsersRoute, /setUserRosterStatus/);
-  assert.match(adminMatchesRoute, /recentMatches\.unshift/);
+  assert.match(adminMatchesRoute, /createMatch\(/);
   assert.match(adminMatchesRoute, /selectedPlayerIds/);
-  assert.match(adminRatingsRoute, /latestMatchTactics/);
+  assert.match(adminRatingsRoute, /applyRatings\(/);
 
   // Header & Profile integration
   assert.match(homeButton, /href="\/admin"/);
@@ -529,3 +529,67 @@ test("supports Post-Match evaluation window, player goals/assists submission, an
 
 
 
+
+test("persists matches, lineups, events and evaluations in D1", async () => {
+  const [
+    migration,
+    store,
+    evaluationsLib,
+    matchesLib,
+    adminMatchesRoute,
+    eventsRoute,
+    matchesRoute,
+  ] = await Promise.all([
+    readFile(
+      new URL("../drizzle/0003_fantastic_venom.sql", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../lib/match-store.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/evaluations.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/matches.ts", import.meta.url), "utf8"),
+    readFile(
+      new URL("../app/api/admin/matches/route.ts", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../app/api/matches/latest-events/route.ts", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../app/api/matches/route.ts", import.meta.url), "utf8"),
+  ]);
+
+  // Schema backing the match history
+  assert.ok(migration.includes("CREATE TABLE `matches`"));
+  assert.ok(migration.includes("CREATE TABLE `match_lineups`"));
+  assert.ok(migration.includes("CREATE TABLE `match_events`"));
+  assert.ok(migration.includes("CREATE TABLE `match_evaluations`"));
+  assert.ok(migration.includes("CREATE TABLE `match_evaluation_ratings`"));
+  assert.ok(
+    migration.includes("CREATE UNIQUE INDEX `idx_match_evaluations_match_user`"),
+  );
+
+  // The store reads and writes D1, seeding the historical matches only once
+  assert.ok(store.includes('import { getD1 } from "@/db"'));
+  assert.ok(store.includes("INSERT OR IGNORE INTO matches"));
+  assert.ok(store.includes("INSERT INTO match_lineups"));
+  assert.ok(store.includes("INSERT INTO match_events"));
+  assert.ok(store.includes("ON CONFLICT(match_id, player_id) DO UPDATE SET"));
+  assert.match(store, /async function ensureSeeded/);
+
+  // Post-match evaluations are rows, not process memory
+  assert.ok(evaluationsLib.includes("INSERT INTO match_evaluations"));
+  assert.ok(evaluationsLib.includes("match_evaluation_ratings"));
+  assert.doesNotMatch(evaluationsLib, /const submissions/);
+
+  // Seed data is frozen so it can never serve as a mutable store again
+  assert.ok(matchesLib.includes("deepFreeze(DEFAULT_RECENT_MATCHES)"));
+  assert.ok(matchesLib.includes("deepFreeze(DEFAULT_MATCH_TACTICS)"));
+
+  // No route may keep match state in module scope
+  assert.doesNotMatch(adminMatchesRoute, /recentMatches|latestMatchTactics/);
+  assert.doesNotMatch(eventsRoute, /liveEvents/);
+
+  // Public read endpoint the client uses to refresh the history
+  assert.match(matchesRoute, /getRecentMatches/);
+  assert.match(matchesRoute, /export async function GET/);
+});

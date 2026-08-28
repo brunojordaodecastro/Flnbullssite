@@ -52,7 +52,9 @@ export const bulls: MatchTeam = {
   crest: "/fln-bulls-shield.png",
 };
 
-export const recentMatches: RecentMatch[] = [
+// Semente do banco e fallback de render quando o D1 não está acessível.
+// O estado real das partidas vive no D1 — ver lib/match-store.ts.
+export const DEFAULT_RECENT_MATCHES: RecentMatch[] = [
   {
     date: "15 mar 2026",
     home: bulls,
@@ -170,8 +172,8 @@ export const recentMatches: RecentMatch[] = [
   },
 ];
 
-// Rich data for latest match (FLN BULLS 6–4 Marcível Dias)
-export const latestMatchTactics: MatchTactics = {
+// Escalação/eventos semente do jogo mais recente (FLN BULLS 6–4 Marcível Dias).
+export const DEFAULT_MATCH_TACTICS: MatchTactics = {
   formation: "2-3-1 (Society)",
   starters: [
     {
@@ -375,6 +377,22 @@ export const latestMatchTactics: MatchTactics = {
     },
   ],
 };
+
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const nested of Object.values(value)) {
+      deepFreeze(nested);
+    }
+  }
+  return value;
+}
+
+// Congelados de propósito: estes objetos já foram usados como store mutável em
+// memória, o que não sobrevive entre isolates do Workers. Qualquer escrita agora
+// falha em vez de se perder silenciosamente.
+deepFreeze(DEFAULT_RECENT_MATCHES);
+deepFreeze(DEFAULT_MATCH_TACTICS);
 
 export function organizeLineupByRatings(allPlayers: PitchPlayer[]): {
   starters: PitchPlayer[];

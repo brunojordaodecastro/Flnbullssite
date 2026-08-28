@@ -2,15 +2,17 @@
 
 import { useMemo, useState } from "react";
 import type { RecentMatch } from "@/lib/matches";
+import { useLiveMatches } from "./useLiveMatches";
 
 const YEARS = ["Geral", "2026", "2025", "2024", "2023"] as const;
 type YearFilter = (typeof YEARS)[number];
 
 export default function TeamStatsSummary({
-  matches,
+  initialMatches,
 }: {
-  matches: RecentMatch[];
+  initialMatches: RecentMatch[];
 }) {
+  const { matches } = useLiveMatches(initialMatches);
   const [selectedYear, setSelectedYear] = useState<YearFilter>("Geral");
 
   const filteredMatches = useMemo(() => {
