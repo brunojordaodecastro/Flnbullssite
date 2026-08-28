@@ -1,0 +1,20 @@
+name = "fln-bulls"
+main = "./worker/index.ts"
+compatibility_date = "2026-08-28"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[assets]
+binding = "ASSETS"
+
+[observability]
+enabled = true
+
+# O Wrangler cria o banco na primeira publicação e grava aqui os dados reais.
+[[d1_databases]]
+binding = "DB"
+migrations_dir = "drizzle"
+
+# O Wrangler cria o bucket na primeira publicação e grava aqui o nome real.
+[[r2_buckets]]
+binding = "PLAYER_MEDIA"
