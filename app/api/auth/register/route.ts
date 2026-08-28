@@ -62,6 +62,12 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("auth-register-failed", {
       code: getSafeAuthErrorCode(error),
+      // A causa traz a mensagem real da WebCrypto/D1; sem ela o log só diz em
+      // qual etapa quebrou, o que não basta para diagnosticar em produção.
+      cause:
+        error instanceof Error && error.cause instanceof Error
+          ? error.cause.message
+          : undefined,
     });
 
     if (rateLimit) {

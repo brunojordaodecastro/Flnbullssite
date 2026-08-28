@@ -185,7 +185,9 @@ test("keeps auth storage and session security in source", async () => {
   assert.match(rateLimitMigration, /`subject_hash` text NOT NULL/);
   assert.match(rateLimitMigration, /`client_hash` text NOT NULL/);
   assert.doesNotMatch(rateLimitMigration, /ALTER TABLE `users` ADD `dominant_foot`/);
-  assert.match(auth, /CURRENT_PBKDF2_ITERATIONS = 600_000/);
+  // O workerd de produção recusa PBKDF2 acima de 100.000 iterações.
+  assert.match(auth, /MAX_WORKERS_PBKDF2_ITERATIONS = 100_000/);
+  assert.match(auth, /CURRENT_PBKDF2_ITERATIONS = MAX_WORKERS_PBKDF2_ITERATIONS/);
   assert.match(auth, /LEGACY_PBKDF2_ITERATIONS = 100_000/);
   assert.match(auth, /\{ name: "PBKDF2" \}/);
   assert.match(auth, /hash: \{ name: "SHA-256" \}/);

@@ -73,7 +73,15 @@ type ValidationResult<T> =
 const SESSION_COOKIE_NAME = "fln_bulls_session";
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 const PASSWORD_HASH_SCHEME = "pbkdf2-sha256";
-const CURRENT_PBKDF2_ITERATIONS = 600_000;
+// O workerd de produção recusa PBKDF2 acima de 100.000 iterações
+// ("Pbkdf2 failed: iteration counts above 100000 are not supported"), como
+// defesa contra DoS no ambiente multi-tenant. O runtime local NÃO aplica esse
+// teto, então valores maiores passam em dev e quebram só no deploy.
+// Não aumente isto sem confirmar que a plataforma passou a aceitar:
+// https://github.com/cloudflare/workerd/issues/1346
+const MAX_WORKERS_PBKDF2_ITERATIONS = 100_000;
+const CURRENT_PBKDF2_ITERATIONS = MAX_WORKERS_PBKDF2_ITERATIONS;
+// Formato antigo (digest puro, sem prefixo de esquema) usava a mesma contagem.
 const LEGACY_PBKDF2_ITERATIONS = 100_000;
 const PASSWORD_DIGEST_PATTERN = /^[0-9a-f]{64}$/i;
 const DUMMY_SALT = "000102030405060708090a0b0c0d0e0f";
