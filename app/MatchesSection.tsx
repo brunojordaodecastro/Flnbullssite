@@ -87,12 +87,14 @@ export default function MatchesSection() {
         const res = await fetch("/api/auth/me", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          if (active && data.user && data.user.role === "admin") {
-            setIsAdmin(true);
+          if (active) {
+            setIsAdmin(data.user?.role === "admin");
           }
+        } else if (active) {
+          setIsAdmin(false);
         }
       } catch {
-        // public view fallback
+        if (active) setIsAdmin(false);
       }
     }
     checkAdmin();
@@ -122,7 +124,6 @@ export default function MatchesSection() {
                 title="Adicionar novo jogo ao site"
                 aria-label="Adicionar novo jogo"
               >
-                +
                 <svg
                   className="add-plus-icon"
                   viewBox="0 0 24 24"
@@ -174,11 +175,13 @@ export default function MatchesSection() {
         </ol>
       </div>
 
-      <AddMatchModal
-        isOpen={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-        onMatchAdded={handleMatchAdded}
-      />
+      {isAdmin ? (
+        <AddMatchModal
+          isOpen={isAddOpen}
+          onClose={() => setIsAddOpen(false)}
+          onMatchAdded={handleMatchAdded}
+        />
+      ) : null}
     </section>
   );
 }

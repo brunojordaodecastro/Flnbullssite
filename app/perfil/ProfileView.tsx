@@ -341,9 +341,9 @@ export default function ProfileView() {
           </span>
           {user.role === "admin" ? (
             <div style={{ marginTop: "0.6rem" }}>
-              <Link href="/admin" className="admin-mini-btn btn-promote" style={{ textDecoration: "none", display: "inline-block" }}>
+              <a href="/admin" className="admin-mini-btn btn-promote" style={{ textDecoration: "none", display: "inline-block" }}>
                 Acessar Painel do Administrador
-              </Link>
+              </a>
             </div>
           ) : null}
         </div>

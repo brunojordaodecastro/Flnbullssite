@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import HomeAccountButton from "./HomeAccountButton";
 import TeamStatsSummary from "./TeamStatsSummary";
@@ -16,7 +15,7 @@ export default function Home() {
             <a aria-current="page" href="#inicio">
               Início
             </a>
-            <Link href="/time">Time</Link>
+            <a href="/time">Time</a>
             <a href="#estatisticas">Estatísticas</a>
             <a href="#partidas">Partidas</a>
             <a href="#amistoso">Amistoso</a>

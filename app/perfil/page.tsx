@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 
 import styles from "../auth.module.css";
 import ProfileView from "./ProfileView";
@@ -14,7 +13,8 @@ export default function ProfilePage() {
   return (
     <div className={styles.authPage}>
       <header className={styles.authHeader}>
-        <Link className={styles.authBrand} href="/">
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a className={styles.authBrand} href="/">
           <Image
             src="/fln-bulls-shield.png"
             alt=""
@@ -22,7 +22,7 @@ export default function ProfilePage() {
             height={979}
           />
           <span>FLN BULLS</span>
-        </Link>
+        </a>
         <span className={styles.privateLabel}>Área protegida</span>
       </header>
 

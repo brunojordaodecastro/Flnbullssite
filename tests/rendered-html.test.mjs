@@ -29,6 +29,7 @@ test("server-renders the FLN BULLS home and recent matches", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
+  const homeSource = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   const recentMatchesSection =
     html.match(/<section class="recent-matches"[\s\S]*?<\/section>/i)?.[0] ?? "";
   assert.match(html, /<title>FLN BULLS \| Futebol 7 em Florianópolis<\/title>/i);
@@ -38,6 +39,8 @@ test("server-renders the FLN BULLS home and recent matches", async () => {
     /Forma recente|Histórico enviado pelo time/i,
   );
   assert.match(html, /fln-bulls-shield\.png/i);
+  assert.match(homeSource, /<a href="\/time">\s*Time\s*<\/a>/);
+  assert.doesNotMatch(homeSource, /<Link href="\/time">/);
   assert.match(html, /class="login-button pressable" href="\/acesso"/i);
   assert.equal(html.match(/class="recent-match"/g)?.length, 10);
   assert.equal(html.match(/<a class="recent-match-link"/g)?.length, 9);
@@ -113,11 +116,13 @@ test("renders the protected player profile shell", async () => {
 });
 
 test("keeps the profile return action as a direct home button", async () => {
-  const profile = await readFile(
-    new URL("../app/perfil/ProfileView.tsx", import.meta.url),
-    "utf8",
-  );
+  const [profilePage, profile] = await Promise.all([
+    readFile(new URL("../app/perfil/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/perfil/ProfileView.tsx", import.meta.url), "utf8"),
+  ]);
 
+  assert.match(profilePage, /<a className=\{styles\.authBrand\} href="\/">/);
+  assert.doesNotMatch(profilePage, /<Link className=\{styles\.authBrand\} href="\/">/);
   assert.match(
     profile,
     /onClick=\{\(\) => window\.location\.assign\("\/"\)\}/,
@@ -268,6 +273,9 @@ test("keeps the recent matches strip responsive and semantic", async () => {
   assert.match(matchesSection, /<ol\s+className="recent-matches-track"/);
   assert.match(matchesSection, /className="recent-match-link"/);
   assert.match(matchesSection, /className="recent-match-link recent-match-static"/);
+  assert.match(matchesSection, /setIsAdmin\(data\.user\?\.role === "admin"\)/);
+  assert.match(matchesSection, /\{isAdmin \? \(\s*<AddMatchModal/);
+  assert.doesNotMatch(matchesSection, /className="admin-add-match-btn[\s\S]*?>\s*\+/);
   assert.doesNotMatch(matchesSection, /recent-matches-kicker|Histórico enviado pelo time/);
   assert.match(css, /\.recent-matches-track\s*\{[^}]*overflow-x:\s*auto/s);
   assert.match(css, /scroll-snap-type:\s*x proximity/);
@@ -479,7 +487,11 @@ test("supports Admin Dashboard, user roles, match adding, and ratings evaluation
 
   // Header & Profile integration
   assert.match(homeButton, /href="\/admin"/);
-  assert.match(profileView, /href="\/admin"/);
+  assert.match(
+    profileView,
+    /<a href="\/admin"[\s\S]*?>\s*Acessar Painel do Administrador\s*<\/a>/,
+  );
+  assert.doesNotMatch(profileView, /<Link href="\/admin"[\s\S]*?>\s*Acessar Painel do Administrador/);
 });
 
 test("supports Post-Match evaluation window, player goals/assists submission, and arithmetic average rating computation", async () => {

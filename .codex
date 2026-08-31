@@ -2120,3 +2120,238 @@ Motivo:
 
 Próximos passos sugeridos:
 - Fechar e abrir novamente qualquer janela antiga do PowerShell e executar `npx wrangler login` dentro da pasta do projeto.
+
+### 2026-08-31 15:32:46 -03:00
+Tarefa solicitada:
+- Fazer o git clone do repositorio `https://github.com/brunojordaodecastro/Flnbullssite` para comecar a trabalhar nas correcoes do site.
+
+Etapa executada:
+- Etapa 1: clonar o repositorio e confirmar que o codigo foi baixado no local correto.
+
+Arquivos analisados:
+- package.json
+- .openai/hosting.json
+- Estrutura da raiz do repositorio
+- Status Git do repositorio
+
+Arquivos alterados:
+- .codex
+
+O que foi feito:
+- O repositorio foi clonado em `work/Flnbullssite`.
+- Foi confirmado que a branch ativa e `master` rastreando `origin/master`.
+- Foram identificados arquivos principais do projeto, incluindo `package.json`, `wrangler.toml`, `.openai/hosting.json`, `app/`, `db/`, `worker/`, `public/` e `tests/`.
+- Nenhum commit, push, instalacao de dependencia ou deploy foi executado.
+
+Motivo:
+- Trazer o codigo real hospedado na Cloudflare para uma pasta local antes de diagnosticar e corrigir os bugs com seguranca.
+
+Proximos passos sugeridos:
+- Rodar a etapa de diagnostico local: verificar configuracoes, instalar dependencias se necessario, executar build/testes e levantar o primeiro erro causado ou revelado pela hospedagem.
+
+### 2026-08-31 15:39:28 -03:00
+Tarefa solicitada:
+- Fazer o diagnostico local do projeto antes de alterar o site hospedado na Cloudflare.
+
+Etapa executada:
+- Etapa 2: validar ambiente local, dependencias, build, testes, lint e configuracao Wrangler sem publicar.
+
+Arquivos analisados:
+- package.json
+- package-lock.json
+- .openai/hosting.json
+- wrangler.toml
+- .env.example
+- lib/auth-security.ts
+- db/index.ts
+- worker/index.ts
+- Estrutura da raiz do repositorio
+
+Arquivos alterados:
+- .codex
+
+O que foi feito:
+- Confirmado Node.js `v24.19.0`, compativel com o requisito `>=22.13.0`.
+- Identificado que o comando `npm` via PowerShell esta bloqueado por politica de execucao local; o diagnostico continuou com `npm.cmd`, sem alterar a politica do Windows.
+- Instaladas as dependencias locais com `npm.cmd ci`, criando `node_modules` a partir do lockfile.
+- Executado `npm.cmd run build` com sucesso.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+- Executado `npx.cmd wrangler --version` com sucesso: `4.92.0`.
+- Executado `npx.cmd wrangler deploy --dry-run` com sucesso, sem publicar, confirmando bindings `DB`, `PLAYER_MEDIA`, `IMAGES`, `ASSETS` e `TURNSTILE_SITE_KEY`.
+- Iniciado o servidor local de producao, validada a Home com HTTP 200 em `http://127.0.0.1:3000/` e encerrado o servidor.
+- Tentada checagem remota somente leitura das migrations D1; o Wrangler bloqueou por falta de `CLOUDFLARE_API_TOKEN` em ambiente nao interativo.
+- Nenhum commit, push, deploy, migration remota ou alteracao de codigo foi executado.
+
+Motivo:
+- Confirmar se os bugs relatados apos a hospedagem aparecem no build local ou se provavelmente dependem de configuracao/estado remoto da Cloudflare.
+
+Proximos passos sugeridos:
+- Verificar no painel/ambiente Cloudflare se o segredo `TURNSTILE_SECRET_KEY` existe e se as migrations D1 foram aplicadas, pois o codigo indica que login/cadastro falham em producao sem esse segredo e rotas com dados falham se o D1 nao estiver migrado.
+
+### 2026-08-31 15:46:15 -03:00
+Tarefa solicitada:
+- Corrigir o botao da Home que deveria direcionar para a pagina Time e nao estava funcionando apos a hospedagem.
+
+Etapa executada:
+- Etapa 3: localizar o botao, confirmar a rota `/time`, aplicar a menor correcao e validar localmente.
+
+Arquivos analisados:
+- app/page.tsx
+- app/time/page.tsx
+- app/globals.css
+- tests/rendered-html.test.mjs
+
+Arquivos alterados:
+- app/page.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- Confirmado que a rota `/time` existe e responde corretamente.
+- Alterado o item `Time` da navegacao da Home de `Link href="/time"` para um link HTML direto `<a href="/time">Time</a>`.
+- Removido o import de `next/link` de `app/page.tsx`, pois a Home nao precisava mais dele.
+- Adicionado teste para garantir que a Home mantenha o link direto para `/time` e nao volte a usar `Link href="/time"`.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+- Validado em servidor local de producao que a Home responde 200, contem o link direto para `/time` e a pagina `/time` responde 200 com conteudo do elenco.
+- Nenhum commit, push ou deploy foi executado.
+
+Motivo:
+- Em hospedagem, a navegacao client-side do `Link` pode falhar mesmo quando a rota direta funciona. O link HTML direto reduz a dependencia dessa camada e garante que o navegador abra `/time` normalmente.
+
+Proximos passos sugeridos:
+- Revisar a alteracao local e, se estiver ok, criar um commit pequeno apenas com essa correcao antes de fazer push para publicar no Cloudflare.
+
+### 2026-08-31 15:48:48 -03:00
+Tarefa solicitada:
+- Corrigir o botao `Acessar Painel do Administrador`, que nao estava acessando a pagina de admin.
+
+Etapa executada:
+- Etapa 4: localizar o botao no perfil, confirmar a rota `/admin`, aplicar correcao minima e validar.
+
+Arquivos analisados:
+- app/perfil/ProfileView.tsx
+- app/admin/page.tsx
+- app/HomeAccountButton.tsx
+- app/admin/AdminDashboardView.tsx
+- tests/rendered-html.test.mjs
+
+Arquivos alterados:
+- app/perfil/ProfileView.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- Confirmado que a pagina `/admin` existe e responde diretamente.
+- Alterado o botao `Acessar Painel do Administrador` em `app/perfil/ProfileView.tsx` de `Link href="/admin"` para link HTML direto `<a href="/admin">`.
+- Mantidas as mesmas classes e estilo visual do botao.
+- Atualizado o teste para garantir que esse botao continue usando link direto para `/admin`.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+- Validado em servidor local de producao que `/admin` responde 200 e contem `Painel do Administrador`.
+- Nenhum commit, push ou deploy foi executado.
+
+Motivo:
+- O bug e semelhante ao botao `Time`: a rota direta funciona, mas o atalho usando navegacao client-side pode falhar no ambiente hospedado. O link HTML direto reduz a dependencia dessa camada e abre `/admin` normalmente.
+
+Proximos passos sugeridos:
+- Revisar os dois atalhos corrigidos (`Time` e `Acessar Painel do Administrador`) e, se estiverem ok, criar um commit pequeno antes do push para publicar na Cloudflare.
+
+### 2026-08-31 15:52:18 -03:00
+Tarefa solicitada:
+- Corrigir o botao `+` de adicionar jogos para aparecer e funcionar somente para administradores, sem duplicar o sinal de mais quando um admin esta logado.
+
+Etapa executada:
+- Etapa 5: localizar a renderizacao do botao, reforcar a regra visual de admin, remover o `+` duplicado e validar.
+
+Arquivos analisados:
+- app/MatchesSection.tsx
+- app/AddMatchModal.tsx
+- app/api/auth/me/route.ts
+- app/api/admin/matches/route.ts
+- tests/rendered-html.test.mjs
+
+Arquivos alterados:
+- app/MatchesSection.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- Removido o caractere `+` textual que ficava junto do icone SVG, causando dois sinais de mais no mesmo botao.
+- Ajustada a checagem de admin para sempre definir `isAdmin` como `true` somente quando `data.user?.role === "admin"` e voltar para `false` quando a sessao nao for admin, nao existir ou falhar.
+- Alterado o componente para montar `AddMatchModal` somente quando `isAdmin` for verdadeiro.
+- Confirmado que a rota `/api/admin/matches` ja possui bloqueio de servidor exigindo usuario com `role === "admin"`.
+- Atualizado o teste para garantir link/modal restritos a admin e evitar retorno do `+` duplicado.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+- Validado em servidor local de producao que a Home sem sessao responde 200 e nao contem `admin-add-match-btn`.
+- Nenhum commit, push ou deploy foi executado.
+
+Motivo:
+- A funcao de adicionar jogos deve ser visivel e acionavel apenas por administradores. Alem disso, o botao estava renderizando dois sinais de mais por conter texto `+` e icone SVG ao mesmo tempo.
+
+Proximos passos sugeridos:
+- Revisar a Home como visitante, jogador comum e admin; depois criar um commit pequeno com as correcoes de navegacao e permissao visual antes do push para publicar.
+
+### 2026-08-31 15:55:03 -03:00
+Tarefa solicitada:
+- Corrigir o clique no icone/nome do time no topo da pagina de perfil, que deveria retornar para a pagina principal.
+
+Etapa executada:
+- Etapa 6: localizar o link do escudo na pagina de perfil, aplicar navegacao direta e validar.
+
+Arquivos analisados:
+- app/perfil/page.tsx
+- app/perfil/ProfileView.tsx
+- tests/rendered-html.test.mjs
+
+Arquivos alterados:
+- app/perfil/page.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- Alterado o topo da pagina de perfil de `Link href="/"` para um link HTML direto `<a href="/">`.
+- Removido o import de `next/link` de `app/perfil/page.tsx`, pois nao era mais necessario nesse arquivo.
+- Adicionada uma excecao pontual de lint para permitir o link direto intencional para `/`.
+- Atualizado o teste para garantir que o topo do perfil continue retornando para a Home por link direto.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+- Nenhum commit, push ou deploy foi executado.
+
+Motivo:
+- O problema segue o mesmo padrao dos atalhos anteriores: a navegacao client-side pode falhar no ambiente hospedado. O link direto garante que o clique no escudo/nome do time recarregue a pagina principal.
+
+Proximos passos sugeridos:
+- Revisar os links corrigidos no perfil e na Home e, se estiverem ok, criar um commit pequeno com as correcoes antes do push para publicar na Cloudflare.
+
+### 2026-08-31 15:57:25 -03:00
+Tarefa solicitada:
+- Aplicar as modificacoes diretamente no site hospedado.
+
+Etapa executada:
+- Etapa 7: validar as correcoes acumuladas, registrar a publicacao e preparar commit/push para o GitHub conectado ao Cloudflare.
+
+Arquivos analisados:
+- app/page.tsx
+- app/perfil/ProfileView.tsx
+- app/perfil/page.tsx
+- app/MatchesSection.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+Arquivos alterados:
+- .codex
+
+O que foi feito:
+- Conferidas as alteracoes que seriam publicadas: links diretos para `Time`, painel admin e Home pelo escudo do perfil; botao `+` restrito a admin; remocao do `+` duplicado.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+- Confirmado que o proximo passo autorizado pelo usuario e criar commit e push para disparar a publicacao automatica no Cloudflare.
+
+Motivo:
+- Publicar somente depois de validar localmente, reduzindo o risco de levar erro para producao.
+
+Proximos passos sugeridos:
+- Acompanhar a publicacao automatica no Cloudflare e testar no site publicado os atalhos `Time`, `Acessar Painel do Administrador`, retorno pelo escudo do perfil e visibilidade do botao `+`.
