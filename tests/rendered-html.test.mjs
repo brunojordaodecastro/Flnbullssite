@@ -470,6 +470,12 @@ test("supports Admin Dashboard, user roles, match adding, and ratings evaluation
   // Admin page and view
   assert.match(adminPage, /Painel do Administrador/);
   assert.match(adminPage, /<AdminDashboardView/);
+  assert.match(adminPage, /<a className=\{styles\.authBrand\} href="\/">/);
+  assert.match(adminPage, /<a href="\/time" className=\{styles\.backHomeLink\}>/);
+  assert.match(adminPage, /<a href="\/perfil" className=\{styles\.backHomeLink\}>/);
+  assert.doesNotMatch(adminPage, /<Link className=\{styles\.authBrand\} href="\/">/);
+  assert.doesNotMatch(adminPage, /<Link href="\/time" className=\{styles\.backHomeLink\}>/);
+  assert.doesNotMatch(adminPage, /<Link href="\/perfil" className=\{styles\.backHomeLink\}>/);
   assert.match(adminView, /Gestão & Diretoria do Bulls/);
   assert.match(adminView, /Solicitações/);
   assert.match(adminView, /Usuários e Admins/);

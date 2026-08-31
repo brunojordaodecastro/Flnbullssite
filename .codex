@@ -2355,3 +2355,36 @@ Motivo:
 
 Proximos passos sugeridos:
 - Acompanhar a publicacao automatica no Cloudflare e testar no site publicado os atalhos `Time`, `Acessar Painel do Administrador`, retorno pelo escudo do perfil e visibilidade do botao `+`.
+
+### 2026-08-31 16:05:07 -03:00
+Tarefa solicitada:
+- Corrigir e publicar os botoes `Ver Time`, `Meu Perfil` e o escudo/nome do time no canto esquerdo da aba do administrador.
+
+Etapa executada:
+- Etapa 8: trocar os atalhos do topo admin para links diretos, validar e publicar via GitHub conectado ao Cloudflare.
+
+Arquivos analisados:
+- app/admin/page.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+Arquivos alterados:
+- app/admin/page.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- Alterado o escudo/nome `FLN BULLS` do topo admin de `Link href="/"` para `<a href="/">`.
+- Alterado `Ver Time` de `Link href="/time"` para `<a href="/time">`.
+- Alterado `Meu Perfil` de `Link href="/perfil"` para `<a href="/perfil">`.
+- Mantidas as mesmas classes e aparencia visual dos botoes.
+- Atualizados testes para garantir que esses tres atalhos do admin sejam links diretos.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+- Validado em servidor local de producao que `/admin` responde 200 e contem links diretos para `/`, `/time` e `/perfil`.
+
+Motivo:
+- Os atalhos do topo admin seguiam o mesmo padrao de navegacao client-side que falhou nos outros botoes apos a hospedagem. Links diretos reduzem essa dependencia e garantem redirecionamento normal no site publicado.
+
+Proximos passos sugeridos:
+- Depois do push, testar no site publicado os tres atalhos no topo da aba admin.
