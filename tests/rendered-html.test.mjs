@@ -380,6 +380,14 @@ test("supports team roster display and join request functionality", async () => 
   // Team page and view components
   assert.match(teamPage, /Elenco e Inscrição/);
   assert.match(teamPage, /<TeamView/);
+  assert.match(teamPage, /<a href="\/">\s*In/);
+  assert.match(teamPage, /<a aria-current="page" href="\/time">/);
+  assert.match(teamPage, /<a href="\/#estatisticas">/);
+  assert.match(teamPage, /<a href="\/#partidas">/);
+  assert.match(teamPage, /<a href="\/#amistoso">/);
+  assert.match(teamPage, /<a href="\/#sobre">/);
+  assert.match(teamPage, /<a className="brand footer-brand" href="\/">/);
+  assert.doesNotMatch(teamPage, /<Link href="\/#(?:estatisticas|partidas|amistoso|sobre)">/);
   assert.match(teamView, /Elenco Oficial/);
   assert.match(teamView, /Solicitar entrada no time|Quer jogar no FLN BULLS/);
   assert.match(teamView, /fetch\("\/api\/team\/join"/);

@@ -2388,3 +2388,36 @@ Motivo:
 
 Proximos passos sugeridos:
 - Depois do push, testar no site publicado os tres atalhos no topo da aba admin.
+
+### 2026-08-31 16:16:02 -03:00
+Tarefa solicitada:
+- Corrigir os botoes do menu da aba Time que nao estavam funcionando ao acessar a pagina `/time`.
+
+Etapa executada:
+- Etapa 9: trocar a navegacao da pagina Time para links diretos, validar e publicar via GitHub conectado ao Cloudflare.
+
+Arquivos analisados:
+- app/time/page.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+Arquivos alterados:
+- app/time/page.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- Alterado o menu superior da pagina Time para usar links HTML diretos em `Inicio`, `Time`, `Estatisticas`, `Partidas`, `Amistoso` e `Sobre`.
+- Alterado o escudo/nome `FLN BULLS` do rodape da pagina Time para link HTML direto para `/`.
+- Removido o import de `next/link` de `app/time/page.tsx`.
+- Adicionadas excecoes pontuais de lint nos links diretos intencionais para rotas internas.
+- Atualizados testes para garantir que a pagina Time mantenha links diretos para `/`, `/time` e as ancoras da Home.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+- Validado em servidor local de producao que `/time` responde 200 e contem links diretos para `/`, `/#estatisticas`, `/#partidas`, `/#amistoso` e `/#sobre`.
+
+Motivo:
+- Os botoes do menu da pagina Time ainda usavam navegacao client-side, o mesmo padrao que ja havia falhado em outras areas apos a hospedagem. Links diretos garantem que o navegador carregue a rota ou ancora correta.
+
+Proximos passos sugeridos:
+- Depois do push, testar no site publicado a navegacao completa a partir da aba Time.

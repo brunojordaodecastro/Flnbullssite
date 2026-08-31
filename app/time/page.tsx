@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import HomeAccountButton from "../HomeAccountButton";
 import TeamView from "./TeamView";
@@ -14,16 +13,18 @@ export default function TeamPage() {
     <div className="site-shell">
       <header className="site-header">
         <div className="header-inner">
+          {/* eslint-disable @next/next/no-html-link-for-pages */}
           <nav className="main-nav" aria-label="Navegação principal">
-            <Link href="/">Início</Link>
-            <Link aria-current="page" href="/time">
+            <a href="/">Início</a>
+            <a aria-current="page" href="/time">
               Time
-            </Link>
-            <Link href="/#estatisticas">Estatísticas</Link>
-            <Link href="/#partidas">Partidas</Link>
-            <Link href="/#amistoso">Amistoso</Link>
-            <Link href="/#sobre">Sobre</Link>
+            </a>
+            <a href="/#estatisticas">Estatísticas</a>
+            <a href="/#partidas">Partidas</a>
+            <a href="/#amistoso">Amistoso</a>
+            <a href="/#sobre">Sobre</a>
           </nav>
+          {/* eslint-enable @next/next/no-html-link-for-pages */}
 
           <HomeAccountButton />
         </div>
@@ -36,7 +37,8 @@ export default function TeamPage() {
       <footer className="site-footer" id="rodape">
         <div className="section-wrap footer-inner">
           <div>
-            <Link className="brand footer-brand" href="/">
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a className="brand footer-brand" href="/">
               <span className="brand-mark" aria-hidden="true">
                 <Image
                   className="brand-shield"
@@ -47,7 +49,7 @@ export default function TeamPage() {
                 />
               </span>
               <span className="brand-name">FLN BULLS</span>
-            </Link>
+            </a>
             <p>Futebol 7 · Florianópolis/SC</p>
           </div>
           <div className="footer-status">
