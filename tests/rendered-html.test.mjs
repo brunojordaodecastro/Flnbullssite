@@ -100,8 +100,9 @@ test("renders player registration and login forms", async () => {
   assert.match(html, /Zagueiro\/Fixo/i);
   assert.match(html, /Ala Direito/i);
   assert.match(html, /Ala Esquerdo/i);
-  assert.match(html, /Meia Direito/i);
-  assert.match(html, /Meia Esquerdo/i);
+  assert.match(html, /Meia/i);
+  assert.doesNotMatch(html, /Meia Direito/i);
+  assert.doesNotMatch(html, /Meia Esquerdo/i);
   assert.match(html, /Atacante\/Pivô/i);
 });
 
@@ -432,6 +433,8 @@ test("supports OneFootball-style tactical pitch, bench, and match events timelin
 
   // Modal
   assert.match(modal, /Registrar Gol ou Assistência/);
+  assert.match(modal, /avatarUrl/);
+  assert.match(modal, /jerseyNumber/);
   assert.match(modal, /Marquei um Gol/);
   assert.match(modal, /Dei uma Assistência/);
   assert.match(modal, /\/icon-goal\.png/);
@@ -453,6 +456,7 @@ test("supports Admin Dashboard, user roles, match adding, and ratings evaluation
     adminRatingsRoute,
     homeButton,
     profileView,
+    addMatchModal,
   ] = await Promise.all([
     readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
     readFile(
@@ -473,6 +477,7 @@ test("supports Admin Dashboard, user roles, match adding, and ratings evaluation
     ),
     readFile(new URL("../app/HomeAccountButton.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/perfil/ProfileView.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/AddMatchModal.tsx", import.meta.url), "utf8"),
   ]);
 
   // Admin page and view
@@ -498,6 +503,10 @@ test("supports Admin Dashboard, user roles, match adding, and ratings evaluation
   assert.match(adminMatchesRoute, /createMatch\(/);
   assert.match(adminMatchesRoute, /selectedPlayerIds/);
   assert.match(adminRatingsRoute, /applyRatings\(/);
+  assert.match(addMatchModal, /fetch\("\/api\/team\/roster"/);
+  assert.match(addMatchModal, /selectedPlayerIds/);
+  assert.match(addMatchModal, /match-roster-selector-section/);
+  assert.match(addMatchModal, /Escalacao \/ lista do jogo/);
 
   // Header & Profile integration
   assert.match(homeButton, /href="\/admin"/);

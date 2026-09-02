@@ -1,4 +1,5 @@
 import { getD1 } from "@/db";
+import { normalizePlayerPosition } from "@/lib/player";
 
 export type RosterPlayer = {
   id: string;
@@ -36,7 +37,7 @@ export const DEFAULT_ROSTER_PLAYERS: RosterPlayer[] = [
   { id: "biel", fullName: "Gabriel Costa", playerName: "Biel", jerseyNumber: 9, position: "Atacante/Pivô", secondaryPosition: null, dominantFoot: "Destro", role: "user", rosterStatus: "approved", avatarUrl: null },
   { id: "rafa", fullName: "Rafael Lima", playerName: "Rafa", jerseyNumber: 10, position: "Meia", secondaryPosition: null, dominantFoot: "Destro", role: "admin", rosterStatus: "approved", avatarUrl: null },
   { id: "jordao", fullName: "Jordão Henrique", playerName: "Jordão", jerseyNumber: 11, position: "Atacante/Pivô", secondaryPosition: null, dominantFoot: "Ambidestro", role: "user", rosterStatus: "approved", avatarUrl: null },
-  { id: "pedro", fullName: "Pedro Albuquerque", playerName: "Pedro", jerseyNumber: 14, position: "Meia Direito", secondaryPosition: null, dominantFoot: "Destro", role: "user", rosterStatus: "approved", avatarUrl: null },
+  { id: "pedro", fullName: "Pedro Albuquerque", playerName: "Pedro", jerseyNumber: 14, position: "Meia", secondaryPosition: null, dominantFoot: "Destro", role: "user", rosterStatus: "approved", avatarUrl: null },
   { id: "caio", fullName: "Caio Mendes", playerName: "Caio", jerseyNumber: 22, position: "Ala Esquerdo", secondaryPosition: null, dominantFoot: "Canhoto", role: "user", rosterStatus: "approved", avatarUrl: null },
 ];
 
@@ -57,8 +58,10 @@ export async function getRosterPlayers(): Promise<RosterPlayer[]> {
       fullName: row.full_name,
       playerName: row.player_name,
       jerseyNumber: row.jersey_number,
-      position: row.position,
-      secondaryPosition: row.secondary_position,
+      position: normalizePlayerPosition(row.position),
+      secondaryPosition: row.secondary_position
+        ? normalizePlayerPosition(row.secondary_position)
+        : null,
       dominantFoot: row.dominant_foot,
       role: row.role,
       rosterStatus: row.roster_status,

@@ -269,7 +269,7 @@ export const DEFAULT_MATCH_TACTICS: MatchTactics = {
       id: "pedro",
       name: "Pedro",
       number: 14,
-      position: "Meia Direito",
+      position: "Meia",
       x: 0,
       y: 0,
       rating: 6.9,

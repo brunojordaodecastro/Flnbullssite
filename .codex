@@ -2421,3 +2421,147 @@ Motivo:
 
 Proximos passos sugeridos:
 - Depois do push, testar no site publicado a navegacao completa a partir da aba Time.
+
+### 2026-09-01 23:19:38 -03:00
+Tarefa solicitada:
+- Remover as posicoes `Meia Esquerdo` e `Meia Direito`, deixando somente `Meia`.
+
+Etapa executada:
+- Etapa 10: atualizar a lista oficial de posicoes, normalizar dados antigos e validar localmente.
+
+Arquivos analisados:
+- lib/player.ts
+- lib/auth.ts
+- lib/team.ts
+- lib/matches.ts
+- lib/match-store.ts
+- tests/rendered-html.test.mjs
+- .codex
+
+Arquivos alterados:
+- lib/player.ts
+- lib/auth.ts
+- lib/team.ts
+- lib/matches.ts
+- lib/match-store.ts
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- Removidas as opcoes `Meia Direito` e `Meia Esquerdo` da lista oficial de posicoes.
+- Adicionada normalizacao para transformar dados antigos de meia esquerda/direita em `Meia` antes de validar ou exibir.
+- Atualizados cadastro, perfil, sessao, painel admin, elenco, fallback do time e escala da partida para mostrar somente `Meia`.
+- Atualizado o teste da tela de acesso para garantir que as opcoes antigas nao aparecam mais.
+- Executado `npm.cmd run build` com sucesso.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+
+Motivo:
+- Simplificar as posicoes de meio-campo no site e impedir que os nomes antigos continuem aparecendo para jogadores, administradores ou visitantes.
+
+Proximos passos sugeridos:
+- Revisar a alteracao local e, se estiver ok, criar commit e push para publicar automaticamente no Cloudflare conectado ao GitHub.
+
+### 2026-09-01 23:24:35 -03:00
+Tarefa solicitada:
+- Adicionar ao modal de criar jogo uma funcao de escalacao/lista do jogo para o admin visualizar todos os jogadores do clube e selecionar quem colocou nome para a partida.
+
+Etapa executada:
+- Etapa 11: reaproveitar a selecao de jogadores ja suportada pelo backend e adicionar a interface no modal `Adicionar Jogo`.
+
+Arquivos analisados:
+- app/AddMatchModal.tsx
+- app/admin/AdminDashboardView.tsx
+- app/api/admin/matches/route.ts
+- app/globals.css
+- tests/rendered-html.test.mjs
+- .codex
+
+Arquivos alterados:
+- app/AddMatchModal.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- O modal `Adicionar Jogo` agora busca o elenco aprovado em `/api/team/roster` quando e aberto.
+- Adicionada a area `Escalacao / lista do jogo` no modal, exibindo todos os jogadores do clube.
+- O admin pode marcar/desmarcar jogadores individualmente e usar os atalhos `Todos` e `Limpar`.
+- A selecao e enviada no cadastro da partida como `selectedPlayerIds`, aproveitando a montagem de escala ja existente no servidor.
+- Ao finalizar o cadastro com sucesso, a selecao do modal e limpa.
+- Atualizado teste para garantir que o modal carregue o elenco, envie `selectedPlayerIds` e mantenha a area de lista do jogo.
+- Executado `npm.cmd run build` com sucesso.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+
+Motivo:
+- Permitir que o administrador registre, no momento de criar o jogo, quais atletas do elenco colocaram nome na lista da partida.
+
+Proximos passos sugeridos:
+- Revisar o modal localmente e, se estiver ok, criar commit e push para publicar automaticamente no Cloudflare conectado ao GitHub.
+
+### 2026-09-01 23:26:44 -03:00
+Tarefa solicitada:
+- Corrigir o erro ao clicar em `Registrar gols e assistencias`.
+
+Etapa executada:
+- Etapa 12: diagnosticar o modal de registro de gols/assistencias e corrigir a quebra ao abrir.
+
+Arquivos analisados:
+- app/time/MatchTimeline.tsx
+- app/time/MatchEventModal.tsx
+- app/time/TeamView.tsx
+- app/api/matches/latest-events/route.ts
+- tests/rendered-html.test.mjs
+- .codex
+
+Arquivos alterados:
+- app/time/MatchEventModal.tsx
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- Identificado que `MatchEventModal` usava `avatarUrl` e `jerseyNumber` dentro do componente, mas esses campos nao estavam declarados nas props.
+- Declaradas as props opcionais `avatarUrl` e `jerseyNumber` no modal, alinhando o componente com o uso feito por `TeamView`.
+- Atualizado teste para proteger o modal contra regressao desse erro.
+- Executado `npm.cmd run build` com sucesso.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+
+Motivo:
+- Ao abrir o modal de registro, referencias nao declaradas podem causar erro de runtime e derrubar a pagina, gerando a tela `This page couldn't load`.
+
+Proximos passos sugeridos:
+- Revisar a correcao local e, se estiver ok, criar commit e push para publicar automaticamente no Cloudflare conectado ao GitHub.
+
+### 2026-09-01 23:52:36 -03:00
+Tarefa solicitada:
+- Fazer commit e push das correcoes pendentes para publicar automaticamente no Cloudflare.
+
+Etapa executada:
+- Etapa 13: validacao final conjunta e preparacao do commit/push.
+
+Arquivos analisados:
+- .codex
+- app/AddMatchModal.tsx
+- app/time/MatchEventModal.tsx
+- lib/auth.ts
+- lib/match-store.ts
+- lib/matches.ts
+- lib/player.ts
+- lib/team.ts
+- tests/rendered-html.test.mjs
+
+Arquivos alterados:
+- .codex
+
+O que foi feito:
+- Conferidas as alteracoes pendentes que serao publicadas em um unico commit.
+- Confirmado que o pacote inclui: posicao unica `Meia`, lista de escalacao no modal `Adicionar Jogo` e correcao do erro no modal `Registrar gols e assistencias`.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+
+Motivo:
+- Publicar somente codigo validado localmente no GitHub conectado ao Cloudflare.
+
+Proximos passos sugeridos:
+- Aguardar a publicacao automatica do Cloudflare e testar no site hospedado as tres mudancas.

@@ -2,6 +2,7 @@ import { getD1 } from "@/db";
 import {
   DOMINANT_FEET,
   PLAYER_POSITIONS,
+  normalizePlayerPosition,
   type DominantFoot,
   type PlayerPosition,
 } from "@/lib/player";
@@ -233,8 +234,9 @@ export function validateRegistration(
       ? payload.confirmPassword
       : "";
   const jerseyNumber = Number(payload.jerseyNumber);
-  const position =
-    typeof payload.position === "string" ? payload.position : "";
+  const position = normalizePlayerPosition(
+    typeof payload.position === "string" ? payload.position : "",
+  );
 
   if (fullName.length < 3 || fullName.length > 100) {
     return {
@@ -485,8 +487,10 @@ export async function authenticatePlayer(input: LoginInput) {
     fullName: user.full_name,
     playerName: user.player_name,
     jerseyNumber: user.jersey_number,
-    position: user.position,
-    secondaryPosition: user.secondary_position,
+    position: normalizePlayerPosition(user.position),
+    secondaryPosition: user.secondary_position
+      ? normalizePlayerPosition(user.secondary_position)
+      : null,
     dominantFoot: user.dominant_foot,
     role: user.role,
     rosterStatus: user.roster_status,
@@ -534,8 +538,10 @@ export async function getPlayerFromSession(token: string) {
     fullName: row.full_name,
     playerName: row.player_name,
     jerseyNumber: row.jersey_number,
-    position: row.position,
-    secondaryPosition: row.secondary_position,
+    position: normalizePlayerPosition(row.position),
+    secondaryPosition: row.secondary_position
+      ? normalizePlayerPosition(row.secondary_position)
+      : null,
     dominantFoot: row.dominant_foot,
     role: row.role,
     rosterStatus: row.roster_status,
@@ -587,10 +593,11 @@ export function validateProfileUpdate(
   }
 
   if ("position" in payload && typeof payload.position === "string") {
-    if (!PLAYER_POSITIONS.includes(payload.position as PlayerPosition)) {
+    const position = normalizePlayerPosition(payload.position);
+    if (!PLAYER_POSITIONS.includes(position as PlayerPosition)) {
       return { ok: false, error: "Posição principal inválida." };
     }
-    result.position = payload.position as PlayerPosition;
+    result.position = position as PlayerPosition;
   }
 
   if ("secondaryPosition" in payload) {
@@ -600,11 +607,14 @@ export function validateProfileUpdate(
       payload.secondaryPosition === "Nenhuma"
     ) {
       result.secondaryPosition = null;
-    } else if (
-      typeof payload.secondaryPosition === "string" &&
-      PLAYER_POSITIONS.includes(payload.secondaryPosition as PlayerPosition)
-    ) {
-      result.secondaryPosition = payload.secondaryPosition as PlayerPosition;
+    } else if (typeof payload.secondaryPosition === "string") {
+      const secondaryPosition = normalizePlayerPosition(
+        payload.secondaryPosition,
+      );
+      if (!PLAYER_POSITIONS.includes(secondaryPosition as PlayerPosition)) {
+        return { ok: false, error: "Posição secundária inválida." };
+      }
+      result.secondaryPosition = secondaryPosition as PlayerPosition;
     } else {
       return { ok: false, error: "Posição secundária inválida." };
     }
@@ -705,8 +715,10 @@ export async function listAllUsersForAdmin(): Promise<AdminUserView[]> {
     fullName: row.full_name,
     playerName: row.player_name,
     jerseyNumber: row.jersey_number,
-    position: row.position,
-    secondaryPosition: row.secondary_position,
+    position: normalizePlayerPosition(row.position),
+    secondaryPosition: row.secondary_position
+      ? normalizePlayerPosition(row.secondary_position)
+      : null,
     dominantFoot: row.dominant_foot,
     role: row.role,
     rosterStatus: row.roster_status,

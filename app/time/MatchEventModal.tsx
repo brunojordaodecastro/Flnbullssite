@@ -8,11 +8,15 @@ export default function MatchEventModal({
   onClose,
   onEventAdded,
   playerName,
+  avatarUrl,
+  jerseyNumber,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onEventAdded: () => void;
   playerName?: string;
+  avatarUrl?: string | null;
+  jerseyNumber?: number;
 }) {
   const [type, setType] = useState<"goal" | "assist">("goal");
   const [minute, setMinute] = useState("");

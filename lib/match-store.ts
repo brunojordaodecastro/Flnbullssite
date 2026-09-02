@@ -1,4 +1,5 @@
 import { getD1 } from "@/db";
+import { normalizePlayerPosition } from "@/lib/player";
 
 import {
   DEFAULT_MATCH_TACTICS,
@@ -88,7 +89,7 @@ function toPitchPlayer(row: LineupRow): PitchPlayer {
     id: row.player_id,
     name: row.player_name,
     number: row.jersey_number,
-    position: row.position,
+    position: normalizePlayerPosition(row.position),
     x: row.x,
     y: row.y,
     goals: row.goals,

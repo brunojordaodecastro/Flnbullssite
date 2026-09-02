@@ -3,6 +3,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import Image from "next/image";
 import styles from "./auth.module.css";
+import type { RosterPlayer } from "@/lib/team";
 
 const PRESET_CRESTS = [
   { label: "Marcível Dias", src: "/team-marcivel-dias.png" },
@@ -66,6 +67,8 @@ export default function AddMatchModal({
   const [bullsGoals, setBullsGoals] = useState("6");
   const [opponentGoals, setOpponentGoals] = useState("4");
   const [instagramLink, setInstagramLink] = useState("");
+  const [availableRoster, setAvailableRoster] = useState<RosterPlayer[]>([]);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -77,6 +80,35 @@ export default function AddMatchModal({
     if (isOpen) window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    let active = true;
+
+    async function loadRoster() {
+      try {
+        const response = await fetch("/api/team/roster", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        if (active && Array.isArray(data.players)) {
+          setAvailableRoster(data.players);
+        }
+      } catch (err) {
+        console.error("add-match-roster-load-failed", err);
+      }
+    }
+
+    loadRoster();
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
 
   function handleDateInput(raw: string) {
     const masked = maskDate(raw);
@@ -146,6 +178,7 @@ export default function AddMatchModal({
           bullsGoals: isUpcoming ? undefined : Number(bullsGoals),
           opponentGoals: isUpcoming ? undefined : Number(opponentGoals),
           instagramLink: instagramLink.trim() || undefined,
+          selectedPlayerIds,
         }),
       });
 
@@ -162,6 +195,7 @@ export default function AddMatchModal({
         setMatchDate("");
         setOpponentName("");
         setInstagramLink("");
+        setSelectedPlayerIds([]);
       }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro na operação.");
@@ -401,6 +435,77 @@ export default function AddMatchModal({
               onChange={(e) => setInstagramLink(e.target.value)}
             />
           </label>
+
+          <div className="match-roster-selector-section">
+            <div className="match-roster-header">
+              <div>
+                <span className="field-subtitle">Escalacao / lista do jogo:</span>
+                <p className="field-hint">
+                  Marque quem colocou nome para essa partida ({selectedPlayerIds.length} de {availableRoster.length} selecionados)
+                </p>
+              </div>
+              <div className="match-roster-quick-actions">
+                <button
+                  type="button"
+                  className="quick-select-btn"
+                  onClick={() =>
+                    setSelectedPlayerIds(availableRoster.map((player) => player.id))
+                  }
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  className="quick-select-btn"
+                  onClick={() => setSelectedPlayerIds([])}
+                >
+                  Limpar
+                </button>
+              </div>
+            </div>
+
+            {availableRoster.length > 0 ? (
+              <div className="match-roster-chips-grid">
+                {availableRoster.map((player) => {
+                  const isSelected = selectedPlayerIds.includes(player.id);
+                  return (
+                    <button
+                      type="button"
+                      key={player.id}
+                      className={`roster-player-chip ${isSelected ? "selected" : ""}`}
+                      onClick={() =>
+                        setSelectedPlayerIds((current) =>
+                          isSelected
+                            ? current.filter((id) => id !== player.id)
+                            : [...current, player.id],
+                        )
+                      }
+                    >
+                      <span className="chip-check-indicator">
+                        {isSelected ? "✓" : ""}
+                      </span>
+                      <div className="chip-avatar">
+                        {player.avatarUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={player.avatarUrl} alt={player.playerName} />
+                        ) : (
+                          <span>{player.jerseyNumber}</span>
+                        )}
+                      </div>
+                      <div className="chip-info">
+                        <strong>{player.playerName}</strong>
+                        <span>
+                          #{player.jerseyNumber} - {player.position}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="field-hint">Nenhum atleta aprovado no clube no momento.</p>
+            )}
+          </div>
 
           {error ? (
             <p className={styles.errorMessage} role="alert">
