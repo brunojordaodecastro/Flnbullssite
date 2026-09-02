@@ -10,6 +10,7 @@ import {
   type MatchEvent,
   type PitchPlayer,
 } from "@/lib/matches";
+import { getPostMatchStatus } from "@/lib/evaluations";
 import { getRosterPlayers } from "@/lib/team";
 
 function normalizeName(str: string): string {
@@ -80,6 +81,20 @@ export async function POST(request: Request) {
   const user = await getPlayerFromSession(token);
   if (!user) {
     return Response.json({ error: "Sessão expirada." }, { status: 401 });
+  }
+
+  const status = await getPostMatchStatus(user.id);
+  if (!status.isEscalado) {
+    return Response.json(
+      { error: "Voce nao foi escalado para este jogo." },
+      { status: 403 },
+    );
+  }
+  if (!status.isOpen) {
+    return Response.json(
+      { error: "As estatisticas liberam 1h apos o horario do jogo." },
+      { status: 400 },
+    );
   }
 
   let payload: unknown;

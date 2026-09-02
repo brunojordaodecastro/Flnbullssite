@@ -2462,6 +2462,80 @@ Motivo:
 Proximos passos sugeridos:
 - Revisar a alteracao local e, se estiver ok, criar commit e push para publicar automaticamente no Cloudflare conectado ao GitHub.
 
+### 2026-09-02 00:44:30 -03:00
+Tarefa solicitada:
+- Fazer commit e push das alteracoes pendentes para publicar automaticamente no Cloudflare.
+
+Etapa executada:
+- Etapa 16: validacao final e publicacao via GitHub conectado ao Cloudflare.
+
+Arquivos analisados:
+- .codex
+- app/AddMatchModal.tsx
+- app/admin/AdminDashboardView.tsx
+- app/api/admin/matches/route.ts
+- app/api/matches/latest-events/route.ts
+- app/globals.css
+- app/time/MatchTimeline.tsx
+- app/time/TeamView.tsx
+- tests/rendered-html.test.mjs
+
+Arquivos alterados:
+- .codex
+
+O que foi feito:
+- Conferidas as alteracoes pendentes que serao publicadas.
+- Executado `npm.cmd test` com sucesso: build concluido e 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+- Executado `git diff --check` sem erros.
+- Preparado o commit e push para o repositorio vinculado ao Cloudflare.
+
+Motivo:
+- Publicar somente codigo validado no site hospedado.
+
+Proximos passos sugeridos:
+- Aguardar a publicacao automatica do Cloudflare e testar no site hospedado a escalação, o goleiro e a liberacao pos-jogo.
+
+### 2026-09-02 00:32:02 -03:00
+Tarefa solicitada:
+- Adicionar na escalação do jogo a escolha do goleiro entre atletas com `Goleiro` como posição principal ou secundária.
+
+Etapa executada:
+- Etapa 15: incluir seletor de goleiro no cadastro de jogo e aplicar a escolha na montagem da escalação.
+
+Arquivos analisados:
+- app/AddMatchModal.tsx
+- app/admin/AdminDashboardView.tsx
+- app/api/admin/matches/route.ts
+- tests/rendered-html.test.mjs
+- .codex
+
+Arquivos alterados:
+- app/AddMatchModal.tsx
+- app/admin/AdminDashboardView.tsx
+- app/api/admin/matches/route.ts
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- Adicionado seletor `Goleiro da partida` no modal `Adicionar Jogo`.
+- Adicionado o mesmo seletor na aba `Adicionar Jogo` do painel admin completo.
+- A lista de goleiros considera atletas com `Goleiro` como posição principal ou secundária.
+- Ao escolher o goleiro, ele também é incluído automaticamente na lista de atletas da partida.
+- Se o goleiro selecionado for desmarcado da lista, a escolha do goleiro é limpa.
+- O cadastro de jogo valida que um goleiro seja escolhido quando há atletas elegíveis para a função.
+- A rota de criação de jogo recebe `goalkeeperId` e coloca o atleta escolhido no campo como `Goleiro`.
+- Atualizados testes para proteger a seleção de goleiro e o envio para o servidor.
+- Executado `npm.cmd run build` com sucesso.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+
+Motivo:
+- Garantir que o administrador escolha manualmente o goleiro da partida entre os atletas aptos e que essa escolha seja refletida na escalação do último jogo.
+
+Proximos passos sugeridos:
+- Revisar a alteração local e, se estiver ok, criar commit e push para publicar automaticamente no Cloudflare conectado ao GitHub.
+
 ### 2026-09-01 23:24:35 -03:00
 Tarefa solicitada:
 - Adicionar ao modal de criar jogo uma funcao de escalacao/lista do jogo para o admin visualizar todos os jogadores do clube e selecionar quem colocou nome para a partida.
@@ -2565,3 +2639,49 @@ Motivo:
 
 Proximos passos sugeridos:
 - Aguardar a publicacao automatica do Cloudflare e testar no site hospedado as tres mudancas.
+
+### 2026-09-02 00:25:27 -03:00
+Tarefa solicitada:
+- Ligar a selecao de escalacao feita ao criar o jogo com o painel de escalacao do ultimo jogo e com a liberacao pos-jogo para jogadores escalados.
+
+Etapa executada:
+- Etapa 14: condicionar registro de gols, assistencias e notas aos atletas selecionados e ao horario de liberacao.
+
+Arquivos analisados:
+- app/AddMatchModal.tsx
+- app/admin/AdminDashboardView.tsx
+- app/api/matches/latest-events/route.ts
+- app/api/matches/post-match/route.ts
+- app/time/MatchTimeline.tsx
+- app/time/TeamView.tsx
+- app/globals.css
+- lib/evaluations.ts
+- lib/match-store.ts
+- tests/rendered-html.test.mjs
+
+Arquivos alterados:
+- app/AddMatchModal.tsx
+- app/admin/AdminDashboardView.tsx
+- app/api/matches/latest-events/route.ts
+- app/time/MatchTimeline.tsx
+- app/time/TeamView.tsx
+- app/globals.css
+- tests/rendered-html.test.mjs
+- .codex
+
+O que foi feito:
+- O cadastro de jogo agora exige pelo menos um atleta selecionado quando existe elenco aprovado disponivel.
+- O botao `Registrar gols e assistencias` da aba Time agora so fica ativo para jogador logado, escalado no ultimo jogo e depois da abertura da janela pos-jogo.
+- O botao passou a abrir o modal completo de pos-jogo, com gols, assistencias e notas dos companheiros.
+- Quando o jogador esta logado mas ainda nao esta liberado, o botao fica desativado com a mensagem `Libera 1h apos o jogo`.
+- A rota de registro de eventos tambem passou a bloquear usuario nao escalado ou antes de 1h apos o horario do jogo.
+- Atualizados testes para proteger a nova regra visual e de servidor.
+- Executado `npm.cmd run build` com sucesso.
+- Executado `npm.cmd test` com sucesso: 14 testes passaram.
+- Executado `npm.cmd run lint` com sucesso.
+
+Motivo:
+- Garantir que a escala definida pelo admin ao criar o jogo seja a mesma usada no painel do ultimo jogo e na permissao de estatisticas pos-jogo.
+
+Proximos passos sugeridos:
+- Revisar a alteracao local e, se estiver ok, criar commit e push para publicar automaticamente no Cloudflare conectado ao GitHub.

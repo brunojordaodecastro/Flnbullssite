@@ -293,6 +293,10 @@ export default function TeamView() {
     };
   }, [tactics, players]);
 
+  const canRegisterPostMatchStats = Boolean(
+    postMatchStatus?.isOpen && postMatchStatus.isEscalado,
+  );
+
   return (
     <div className="team-page">
       {/* Team Hero */}
@@ -473,8 +477,9 @@ export default function TeamView() {
           {/* Timeline de Acontecimentos do Jogo */}
           <MatchTimeline
             events={tactics.events}
-            onOpenRegisterModal={() => setIsEventModalOpen(true)}
+            onOpenRegisterModal={() => setIsPostMatchModalOpen(true)}
             isLoggedIn={Boolean(user)}
+            canRegisterStats={canRegisterPostMatchStats}
           />
         </section>
       ) : (

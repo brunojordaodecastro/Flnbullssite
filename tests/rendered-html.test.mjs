@@ -428,6 +428,8 @@ test("supports OneFootball-style tactical pitch, bench, and match events timelin
   assert.match(timeline, /Marcível Dias/);
   assert.match(timeline, /match-timeline-track/);
   assert.match(timeline, /Registrar gols e assistências/);
+  assert.match(timeline, /canRegisterStats/);
+  assert.match(timeline, /Libera 1h apos o jogo/);
   assert.match(timeline, /\/icon-goal\.png/);
   assert.match(timeline, /\/icon-assist\.png/);
 
@@ -442,6 +444,9 @@ test("supports OneFootball-style tactical pitch, bench, and match events timelin
 
   // Events API & Library
   assert.match(eventsRoute, /addMatchEvent/);
+  assert.match(eventsRoute, /getPostMatchStatus/);
+  assert.match(eventsRoute, /status\.isEscalado/);
+  assert.match(eventsRoute, /status\.isOpen/);
   assert.match(eventsRoute, /export async function POST/);
   assert.match(matchesLib, /DEFAULT_MATCH_TACTICS/);
   assert.match(matchesLib, /formation:\s*"2-3-1 \(Society\)"/);
@@ -502,11 +507,18 @@ test("supports Admin Dashboard, user roles, match adding, and ratings evaluation
   assert.match(adminUsersRoute, /setUserRosterStatus/);
   assert.match(adminMatchesRoute, /createMatch\(/);
   assert.match(adminMatchesRoute, /selectedPlayerIds/);
+  assert.match(adminMatchesRoute, /goalkeeperId/);
+  assert.match(adminMatchesRoute, /secondaryPosition === "Goleiro"/);
   assert.match(adminRatingsRoute, /applyRatings\(/);
   assert.match(addMatchModal, /fetch\("\/api\/team\/roster"/);
   assert.match(addMatchModal, /selectedPlayerIds/);
+  assert.match(addMatchModal, /selectedGoalkeeperId/);
+  assert.match(addMatchModal, /Goleiro da partida/);
+  assert.match(addMatchModal, /secondaryPosition === "Goleiro"/);
   assert.match(addMatchModal, /match-roster-selector-section/);
   assert.match(addMatchModal, /Escalacao \/ lista do jogo/);
+  assert.match(adminView, /matchGoalkeeperId/);
+  assert.match(adminView, /Goleiro da partida/);
 
   // Header & Profile integration
   assert.match(homeButton, /href="\/admin"/);
@@ -559,6 +571,8 @@ test("supports Post-Match evaluation window, player goals/assists submission, an
   assert.match(teamView, /PostMatchModal/);
   assert.match(teamView, /loadPostMatchStatus/);
   assert.match(teamView, /post-match-banner-card/);
+  assert.match(teamView, /canRegisterPostMatchStats/);
+  assert.match(teamView, /setIsPostMatchModalOpen\(true\)/);
 });
 
 

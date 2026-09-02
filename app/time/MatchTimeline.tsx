@@ -7,10 +7,12 @@ export default function MatchTimeline({
   events,
   onOpenRegisterModal,
   isLoggedIn,
+  canRegisterStats,
 }: {
   events: MatchEvent[];
   onOpenRegisterModal: () => void;
   isLoggedIn: boolean;
+  canRegisterStats: boolean;
 }) {
   return (
     <div className="match-center-panel">
@@ -58,13 +60,22 @@ export default function MatchTimeline({
           <h3>Acontecimentos da partida ({events.length})</h3>
         </div>
 
-        {isLoggedIn ? (
+        {canRegisterStats ? (
           <button
             type="button"
             className="register-stat-btn pressable"
             onClick={onOpenRegisterModal}
           >
             Registrar gols e assistências
+          </button>
+        ) : isLoggedIn ? (
+          <button
+            type="button"
+            className="register-stat-btn register-stat-btn-login pressable"
+            disabled
+            title="Disponivel apenas para atletas escalados, 1h apos o horario do jogo."
+          >
+            Libera 1h apos o jogo
           </button>
         ) : (
           <a href="/acesso" className="register-stat-btn register-stat-btn-login pressable">

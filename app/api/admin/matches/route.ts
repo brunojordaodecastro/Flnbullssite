@@ -1,7 +1,7 @@
 import { getPlayerFromSession, getSessionToken } from "@/lib/auth";
 import { createMatch, getMatchTactics, getRecentMatches } from "@/lib/match-store";
 import { bulls, type MatchTeam, type PitchPlayer, type RecentMatch } from "@/lib/matches";
-import { getRosterPlayers } from "@/lib/team";
+import { getRosterPlayers, type RosterPlayer } from "@/lib/team";
 
 const SLOT_COORDS = [
   { x: 50, y: 86 },
@@ -13,23 +13,36 @@ const SLOT_COORDS = [
   { x: 50, y: 18 },
 ];
 
+function canPlayGoalkeeper(player: RosterPlayer) {
+  return player.position === "Goleiro" || player.secondaryPosition === "Goleiro";
+}
+
 /**
  * Spreads the admin's picks over the 2-3-1 pitch slots, respecting each
  * player's declared position before falling back to the remaining coordinates.
  */
-async function buildLineup(selectedPlayerIds: string[]) {
+async function buildLineup(selectedPlayerIds: string[], goalkeeperId?: string) {
   const roster = await getRosterPlayers();
   const selected = roster.filter((p) => selectedPlayerIds.includes(p.id));
+  const selectedGoalkeeper = goalkeeperId
+    ? selected.find((p) => p.id === goalkeeperId && canPlayGoalkeeper(p))
+    : null;
+  const orderedSelected = selectedGoalkeeper
+    ? [
+        selectedGoalkeeper,
+        ...selected.filter((p) => p.id !== selectedGoalkeeper.id),
+      ]
+    : selected;
 
   if (selected.length === 0) {
     return null;
   }
 
-  const players: PitchPlayer[] = selected.map((p) => ({
+  const players: PitchPlayer[] = orderedSelected.map((p) => ({
     id: p.id,
     name: p.playerName,
     number: p.jerseyNumber,
-    position: p.position,
+    position: p.id === selectedGoalkeeper?.id ? "Goleiro" : p.position,
     avatarUrl: p.avatarUrl,
     rating: 7.0,
     goals: 0,
@@ -129,6 +142,7 @@ export async function POST(request: Request) {
     opponentGoals?: number;
     instagramLink?: string;
     selectedPlayerIds?: string[];
+    goalkeeperId?: string;
   };
 
   if (!data.date || !data.opponentName) {
@@ -173,7 +187,7 @@ export async function POST(request: Request) {
   try {
     const lineup =
       Array.isArray(data.selectedPlayerIds) && data.selectedPlayerIds.length > 0
-        ? await buildLineup(data.selectedPlayerIds)
+        ? await buildLineup(data.selectedPlayerIds, data.goalkeeperId)
         : null;
 
     const stored = await createMatch(newMatch, lineup ?? undefined);

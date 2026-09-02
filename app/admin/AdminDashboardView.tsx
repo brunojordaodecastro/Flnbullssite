@@ -18,6 +18,10 @@ function maskDate(value: string): string {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
 }
 
+function canPlayGoalkeeper(player: RosterPlayer) {
+  return player.position === "Goleiro" || player.secondaryPosition === "Goleiro";
+}
+
 export default function AdminDashboardView() {
   const [activeTab, setActiveTab] = useState<AdminTab>("solicitacoes");
   const [users, setUsers] = useState<AdminUserView[]>([]);
@@ -25,6 +29,7 @@ export default function AdminDashboardView() {
   const [ratingsState, setRatingsState] = useState<Record<string, string>>({});
   const [availableRoster, setAvailableRoster] = useState<RosterPlayer[]>([]);
   const [matchSelectedPlayerIds, setMatchSelectedPlayerIds] = useState<string[]>([]);
+  const [matchGoalkeeperId, setMatchGoalkeeperId] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -57,6 +62,9 @@ export default function AdminDashboardView() {
           if (Array.isArray(rJson.players)) {
             setAvailableRoster(rJson.players);
             setMatchSelectedPlayerIds(rJson.players.map((p: RosterPlayer) => p.id));
+            setMatchGoalkeeperId(
+              rJson.players.find(canPlayGoalkeeper)?.id ?? "",
+            );
           }
         }
 
@@ -188,6 +196,25 @@ export default function AdminDashboardView() {
       return;
     }
 
+    if (availableRoster.length > 0 && matchSelectedPlayerIds.length === 0) {
+      setFeedback({
+        type: "error",
+        message: "Selecione pelo menos um atleta na lista do jogo.",
+      });
+      setMatchSubmitting(false);
+      return;
+    }
+
+    const goalkeeperOptions = availableRoster.filter(canPlayGoalkeeper);
+    if (goalkeeperOptions.length > 0 && !matchGoalkeeperId) {
+      setFeedback({
+        type: "error",
+        message: "Escolha o goleiro da partida.",
+      });
+      setMatchSubmitting(false);
+      return;
+    }
+
     const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
     const formattedDate = `${String(day).padStart(2, "0")} ${months[month - 1]} ${year}`;
 
@@ -202,6 +229,7 @@ export default function AdminDashboardView() {
           opponentGoals: Number(opponentGoals),
           instagramLink: instagramLink.trim() || undefined,
           selectedPlayerIds: matchSelectedPlayerIds,
+          goalkeeperId: matchGoalkeeperId || undefined,
         }),
       });
 
@@ -266,6 +294,7 @@ export default function AdminDashboardView() {
   }
 
   const pendingRequests = users.filter((u) => u.rosterStatus === "pending");
+  const goalkeeperOptions = availableRoster.filter(canPlayGoalkeeper);
 
   return (
     <div className="admin-dashboard-wrap">
@@ -603,19 +632,58 @@ export default function AdminDashboardView() {
                     <button
                       type="button"
                       className="quick-select-btn"
-                      onClick={() => setMatchSelectedPlayerIds(availableRoster.map((p) => p.id))}
+                      onClick={() => {
+                        setMatchSelectedPlayerIds(availableRoster.map((p) => p.id));
+                        setMatchGoalkeeperId(
+                          (current) => current || goalkeeperOptions[0]?.id || "",
+                        );
+                      }}
                     >
                       Todos
                     </button>
                     <button
                       type="button"
                       className="quick-select-btn"
-                      onClick={() => setMatchSelectedPlayerIds([])}
+                      onClick={() => {
+                        setMatchSelectedPlayerIds([]);
+                        setMatchGoalkeeperId("");
+                      }}
                     >
                       Limpar
                     </button>
                   </div>
                 </div>
+
+                {goalkeeperOptions.length > 0 ? (
+                  <label className={styles.field}>
+                    <span>Goleiro da partida</span>
+                    <select
+                      value={matchGoalkeeperId}
+                      onChange={(event) => {
+                        const playerId = event.target.value;
+                        setMatchGoalkeeperId(playerId);
+                        if (playerId) {
+                          setMatchSelectedPlayerIds((current) =>
+                            current.includes(playerId)
+                              ? current
+                              : [...current, playerId],
+                          );
+                        }
+                      }}
+                    >
+                      <option value="">Escolha o goleiro</option>
+                      {goalkeeperOptions.map((player) => (
+                        <option value={player.id} key={player.id}>
+                          {player.playerName} #{player.jerseyNumber}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <p className="field-hint">
+                    Nenhum atleta com posicao de goleiro principal ou secundaria.
+                  </p>
+                )}
 
                 {availableRoster.length > 0 ? (
                   <div className="match-roster-chips-grid">
@@ -627,6 +695,9 @@ export default function AdminDashboardView() {
                           key={player.id}
                           className={`roster-player-chip ${isSelected ? "selected" : ""}`}
                           onClick={() => {
+                            if (isSelected && player.id === matchGoalkeeperId) {
+                              setMatchGoalkeeperId("");
+                            }
                             setMatchSelectedPlayerIds((prev) =>
                               isSelected ? prev.filter((id) => id !== player.id) : [...prev, player.id]
                             );

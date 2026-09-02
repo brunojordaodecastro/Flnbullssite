@@ -49,6 +49,10 @@ function maskTime(value: string): string {
   return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
 }
 
+function canPlayGoalkeeper(player: RosterPlayer) {
+  return player.position === "Goleiro" || player.secondaryPosition === "Goleiro";
+}
+
 export default function AddMatchModal({
   isOpen,
   onClose,
@@ -69,6 +73,7 @@ export default function AddMatchModal({
   const [instagramLink, setInstagramLink] = useState("");
   const [availableRoster, setAvailableRoster] = useState<RosterPlayer[]>([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [selectedGoalkeeperId, setSelectedGoalkeeperId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -130,6 +135,17 @@ export default function AddMatchModal({
     }
   }
 
+  const goalkeeperOptions = availableRoster.filter(canPlayGoalkeeper);
+
+  function chooseGoalkeeper(playerId: string) {
+    setSelectedGoalkeeperId(playerId);
+    if (playerId) {
+      setSelectedPlayerIds((current) =>
+        current.includes(playerId) ? current : [...current, playerId],
+      );
+    }
+  }
+
   if (!isOpen) return null;
 
   async function handleSubmit(e: FormEvent) {
@@ -161,6 +177,18 @@ export default function AddMatchModal({
       return;
     }
 
+    if (availableRoster.length > 0 && selectedPlayerIds.length === 0) {
+      setError("Selecione pelo menos um atleta na lista do jogo.");
+      setSubmitting(false);
+      return;
+    }
+
+    if (goalkeeperOptions.length > 0 && !selectedGoalkeeperId) {
+      setError("Escolha o goleiro da partida.");
+      setSubmitting(false);
+      return;
+    }
+
     // Format for standard display (e.g. "22 mar 2026")
     const formattedDate = `${String(day).padStart(2, "0")} ${MONTH_NAMES[month - 1]} ${year}`;
 
@@ -179,6 +207,7 @@ export default function AddMatchModal({
           opponentGoals: isUpcoming ? undefined : Number(opponentGoals),
           instagramLink: instagramLink.trim() || undefined,
           selectedPlayerIds,
+          goalkeeperId: selectedGoalkeeperId || undefined,
         }),
       });
 
@@ -196,6 +225,7 @@ export default function AddMatchModal({
         setOpponentName("");
         setInstagramLink("");
         setSelectedPlayerIds([]);
+        setSelectedGoalkeeperId("");
       }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro na operação.");
@@ -448,21 +478,48 @@ export default function AddMatchModal({
                 <button
                   type="button"
                   className="quick-select-btn"
-                  onClick={() =>
-                    setSelectedPlayerIds(availableRoster.map((player) => player.id))
-                  }
+                  onClick={() => {
+                    setSelectedPlayerIds(availableRoster.map((player) => player.id));
+                    setSelectedGoalkeeperId(
+                      (current) => current || goalkeeperOptions[0]?.id || "",
+                    );
+                  }}
                 >
                   Todos
                 </button>
                 <button
                   type="button"
                   className="quick-select-btn"
-                  onClick={() => setSelectedPlayerIds([])}
+                  onClick={() => {
+                    setSelectedPlayerIds([]);
+                    setSelectedGoalkeeperId("");
+                  }}
                 >
                   Limpar
                 </button>
               </div>
             </div>
+
+            {goalkeeperOptions.length > 0 ? (
+              <label className={styles.field}>
+                <span>Goleiro da partida</span>
+                <select
+                  value={selectedGoalkeeperId}
+                  onChange={(event) => chooseGoalkeeper(event.target.value)}
+                >
+                  <option value="">Escolha o goleiro</option>
+                  {goalkeeperOptions.map((player) => (
+                    <option value={player.id} key={player.id}>
+                      {player.playerName} #{player.jerseyNumber}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <p className="field-hint">
+                Nenhum atleta com posicao de goleiro principal ou secundaria.
+              </p>
+            )}
 
             {availableRoster.length > 0 ? (
               <div className="match-roster-chips-grid">
@@ -473,13 +530,16 @@ export default function AddMatchModal({
                       type="button"
                       key={player.id}
                       className={`roster-player-chip ${isSelected ? "selected" : ""}`}
-                      onClick={() =>
+                      onClick={() => {
+                        if (isSelected && player.id === selectedGoalkeeperId) {
+                          setSelectedGoalkeeperId("");
+                        }
                         setSelectedPlayerIds((current) =>
                           isSelected
                             ? current.filter((id) => id !== player.id)
                             : [...current, player.id],
-                        )
-                      }
+                        );
+                      }}
                     >
                       <span className="chip-check-indicator">
                         {isSelected ? "✓" : ""}
